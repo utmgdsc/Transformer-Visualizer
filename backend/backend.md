@@ -1,4 +1,7 @@
+# Transformer Visualizer Backend
+
 ## run server
+
 ```bash
 uvicorn main:app --reload
 ```
@@ -6,11 +9,13 @@ uvicorn main:app --reload
 ## API endpoints
 
 ### health check
-```
+
+```text
 GET /health
 ```
 
 response:
+
 ```json
 {
   "status": "healthy",
@@ -20,11 +25,13 @@ response:
 ```
 
 ### predict next token
-```
+
+```text
 POST /v1/predict
 ```
 
 request body:
+
 ```json
 {
   "text": "The quick brown fox",
@@ -34,6 +41,7 @@ request body:
 ```
 
 response:
+
 ```json
 {
   "input_text": "The quick brown fox",
@@ -59,11 +67,13 @@ response:
 ```
 
 ### generate text
-```
+
+```text
 POST /v1/generate
 ```
 
 request body:
+
 ```json
 {
   "text": "Once upon a time",
@@ -74,6 +84,7 @@ request body:
 ```
 
 response:
+
 ```json
 {
   "input_text": "Once upon a time",
