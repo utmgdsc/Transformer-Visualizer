@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+transformer-lens
+torch
+pydantic-settings
+python-dotenv
