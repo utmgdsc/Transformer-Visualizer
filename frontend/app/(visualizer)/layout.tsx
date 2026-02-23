@@ -7,7 +7,6 @@ export default function VisualizerLayout({
     return (
 
         <>
-
         <header className="pl-8 pt-6 pb-6 border-b border-white space-y-2">
 
         <h1 className="text-3xl font-bold">
@@ -23,7 +22,6 @@ export default function VisualizerLayout({
         </p>
 
         </header>
-
 
         <main className='relative min-h-screen'>
 
