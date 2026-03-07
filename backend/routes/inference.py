@@ -10,10 +10,10 @@ router = APIRouter(prefix="/v1", tags=["inference"])
 @router.post("/predict", response_model=InferenceResponse)
 async def predict_next_token(request: InferenceRequest):
     # check if model is loaded before processing
-    if not model_manager.is_loaded():
+    if not model_manager.is_loaded(request.language):
         raise HTTPException(status_code=503, detail="Model not loaded")
     
-    model = model_manager.get_model()
+    model = model_manager.get_model(request.language)
     
     try:
         # convert input text to tokens
@@ -58,10 +58,10 @@ async def predict_next_token(request: InferenceRequest):
 @router.post("/generate")
 async def generate_text(request: InferenceRequest):
     # check if model is loaded before processing
-    if not model_manager.is_loaded():
+    if not model_manager.is_loaded(request.language):
         raise HTTPException(status_code=503, detail="Model not loaded")
     
-    model = model_manager.get_model()
+    model = model_manager.get_model(request.language)
     
     try:
         # convert input text to tokens
