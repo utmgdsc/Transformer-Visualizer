@@ -2,36 +2,39 @@ from transformer_lens import HookedTransformer
 from typing import Optional
 import torch
 
+LANGUAGE_MODELS = {"en": "gpt2", "fr": "bigscience/bloom-560m"}
+
 class ModelManager:
     def __init__(self):
-        self.model: Optional[HookedTransformer] = None
-        self.model_name: Optional[str] = None
+        self.models: dict[str, HookedTransformer] = {}
         self.device: str = "cpu"
+        self.curr_language: Optional[str] = None
     
-    def load_model(self, model_name: str = "gpt2", device: str = "cpu"):
+    def load_model(self, language: str = "en", device: str = "cpu"):
         # skip loading if model is already loaded
-        if self.model is not None and self.model_name == model_name:
-            return self.model
-        
+        if language not in LANGUAGE_MODELS:
+            raise ValueError("Unsupported language.")
+        if language in self.models:
+            return self.models[language]
+
         # update model configuration
         self.device = device
-        self.model_name = model_name
-        
         # load pretrained model from transformerlens
-        self.model = HookedTransformer.from_pretrained(
-            model_name,
+        self.models[language] = HookedTransformer.from_pretrained(
+            LANGUAGE_MODELS[language],
             device=device
         )
-        return self.model
+        return self.models[language]
     
-    def get_model(self) -> HookedTransformer:
+    def get_model(self, language: str = "en") -> HookedTransformer:
         # ensure model is loaded before returning
-        if self.model is None:
+        if language not in self.models:
             raise RuntimeError("Model not loaded. Call load_model first.")
-        return self.model
+        self.curr_language = language
+        return self.models[language]
     
-    def is_loaded(self) -> bool:
-        return self.model is not None
+    def is_loaded(self, language: str = "en") -> bool:
+        return language in self.models
 
 # global model manager instance
 model_manager = ModelManager()

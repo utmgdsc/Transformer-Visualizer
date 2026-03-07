@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     app_name: str = "Transformer Visualizer API"
     
     # model configuration
-    model_name: str = "gpt2"
+    default_language: str = "en"
     device: str = "cpu"
     
     class Config:

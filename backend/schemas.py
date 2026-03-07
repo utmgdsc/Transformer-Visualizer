@@ -9,6 +9,7 @@ class InferenceRequest(BaseModel):
     max_tokens: int = 50
     temperature: float = 1.0
     top_k: int = 5
+    language: str = "en"
 
 class TokenProbability(BaseModel):
     # token information

@@ -3,16 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from config import settings
-from models.model_loader import model_manager
+from models.model_loader import model_manager, LANGUAGE_MODELS
 from routes.inference import router as inference_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # load model on startup
-    model_manager.load_model(model_name=settings.model_name, device=settings.device)
+    model_manager.load_model(language="en", device=settings.device)
+    model_manager.load_model(language="fr", device=settings.device)
     yield
     # cleanup model on shutdown
-    model_manager.model = None
+    model_manager.models = {}
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
@@ -33,5 +34,6 @@ async def health_check():
     return {
         "status": "healthy",
         "model_loaded": model_manager.is_loaded(),
-        "model_name": model_manager.model_name
+        "current_language": model_manager.curr_language,
+        "current_model": LANGUAGE_MODELS[model_manager.curr_language]
     }
