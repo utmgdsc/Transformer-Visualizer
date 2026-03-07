@@ -2,7 +2,7 @@ from transformer_lens import HookedTransformer
 from typing import Optional
 import torch
 
-LANGUAGE_MODELS = {"en": "gpt2"}
+LANGUAGE_MODELS = {"en": "gpt2", "fr": "bigscience/bloom-560m"}
 
 class ModelManager:
     def __init__(self):

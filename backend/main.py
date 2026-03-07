@@ -12,6 +12,7 @@ from models.model_loader import model_manager, LANGUAGE_MODELS
 async def lifespan(app: FastAPI):
     # load model on startup
     model_manager.load_model(language="en", device=settings.device)
+    model_manager.load_model(language="fr", device=settings.device)
     yield
     # cleanup model on shutdown
     model_manager.models = {}
