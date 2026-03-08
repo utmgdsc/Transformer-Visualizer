@@ -1,98 +1,109 @@
-export default function QkvCalculation () {
-    return (
+"use client"
 
-    <div className="flex flex-col items-center justify-center mt-16 space-y-16">
+import { useSearchParams } from "next/navigation"
 
-      <div className="flex items-center space-x-6 text-2xl font-semibold">
+export default function QKVCalculation() {
 
-        <span className="text-6xl">Σ</span>
+  const params = useSearchParams()
+  const sentence = params.get("text") || ""
 
-        <span>
-          Embedding<sub>id</sub>
-        </span>
+  const tokens = sentence.trim().split(/\s+/)
+  const count = tokens.length
 
-        <span className="text-white">•</span>
+  return (
 
-        <span>
-          Weights<sub>dj</sub>
-        </span>
+<div className="flex flex-col items-center mt-24 space-y-16">
 
-        <span className="text-white">+</span>
+  <div className="flex items-center space-x-6 text-3xl font-semibold">
 
-        <span>
-          Bias<sub>j</sub>
-        </span>
-      </div>
+    <span className="text-5xl">Σ</span>
 
-      <div className="text-5xl">↓</div>
+    <span>
+      Embedding<sub>id</sub>
+    </span>
 
-      <div className="flex items-center space-x-10">
+    <span>•</span>
 
-        <div className="flex items-center space-x-6 -mt-8 ">
+    <span>
+      Weights<sub>dj</sub>
+    </span>
 
-          <div className="flex items-end space-x-6">
+    <span>+</span>
 
-            <div className="w-4 h-28 bg-gray-300 rounded-full"></div>
+    <span>
+      Bias<sub>j</sub>
+    </span>
 
-            <span className="text-2xl">...</span>
+  </div>
 
-            <div className="w-4 h-28 bg-gray-300 rounded-full"></div>
+  <div className="text-5xl">↓</div>
 
-          </div>
-          
-          <span className="text-2xl font-bold">×</span>
-        </div>
 
-        
+  <div className="grid grid-cols-7 items-center w-full max-w-5xl">
 
-        <div className="flex flex-col items-center space-y-3">
+    <div className="flex justify-center items-end space-x-4">
 
-          <div className="flex">
+      <div className="w-6 h-28 bg-gray-300 rounded-full"></div>
 
-            <div className="w-24 h-24 bg-gray-200"></div>
+      {count > 2 && <span className="text-2xl">...</span>}
 
-            <div className="w-24 h-24 bg-gray-400"></div>
+      {count > 1 && (
+        <div className="w-6 h-28 bg-gray-300 rounded-full"></div>
+      )}
 
-            <div className="w-24 h-24 bg-gray-600"></div>
+    </div>
 
-          </div>
+    <div className="text-center text-3xl">×</div>
 
-          <p className="text-sm text-gray-400">Q K V Weights</p>
+    <div className="flex justify-center">
 
-        </div>
+      <div className="flex">
 
-        <span className="text-3xl font-bold text-white">+</span>
-
-        <div className="flex flex-col items-center space-y-3">
-
-          <div className="w-4 h-50 bg-gray-300 rounded-full"></div>
-
-          <p className="text-sm text-gray-400">QKV Bias</p>
-
-        </div>
-
-        <span className="text-3xl font-bold">=</span>
-
-        <div className="flex flex-col items-center space-y-3">
-
-          <div className="flex">
-
-            <div className="w-24 h-24 bg-gray-200"></div>
-
-            <div className="w-24 h-24 bg-gray-400"></div>
-
-            <div className="w-24 h-24 bg-gray-600"></div>
-
-          </div>
-
-          <p className="text-sm text-gray-400">QKV Matrix</p>
-
-        </div>
+        <div className="w-18 h-20 bg-gray-200"></div>
+        <div className="w-18 h-20 bg-gray-400"></div>
+        <div className="w-18 h-20 bg-gray-600"></div>
 
       </div>
 
     </div>
 
-    );
+    <div className="text-center text-3xl">+</div>
 
+    <div className="flex justify-center">
+
+      <div className="w-6 h-40 bg-gray-300 rounded-full"></div>
+
+    </div>
+
+    <div className="text-center text-3xl">=</div>
+
+    <div className="flex justify-center">
+
+      <div className="flex">
+
+        <div className="w-18 h-20 bg-gray-200"></div>
+        <div className="w-18 h-20 bg-gray-400"></div>
+        <div className="w-18 h-20 bg-gray-600"></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div className="grid grid-cols-7 w-full max-w-5xl text-gray-400 text-center">
+
+    <span>{count} Embedding Vectors</span>
+    <span></span>
+    <span>Q K V Weights (768,2304) </span>
+    <span></span>
+    <span>QKV Bias (2304)</span>
+    <span></span>
+    <span>QKV Matrix ({count},2304)</span>
+
+  </div>
+
+</div>
+
+  )
 }
