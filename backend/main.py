@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from config import settings
 from models.model_loader import model_manager, LANGUAGE_MODELS
 from routes.inference import router as inference_router
+from routes.attention import router as attention_router
+from routes.ablation import router as ablation_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,12 +30,26 @@ app.add_middleware(
 
 # register inference routes
 app.include_router(inference_router)
+app.include_router(attention_router)
+app.include_router(ablation_router)
 
 @app.get("/health")
 async def health_check():
+    current_model = None
+    if model_manager.curr_language and model_manager.curr_language in LANGUAGE_MODELS:
+        current_model = LANGUAGE_MODELS[model_manager.curr_language]
+    
     return {
         "status": "healthy",
         "model_loaded": model_manager.is_loaded(),
         "current_language": model_manager.curr_language,
-        "current_model": LANGUAGE_MODELS[model_manager.curr_language]
+        "current_model": current_model,
+        "available_languages": list(LANGUAGE_MODELS.keys())
+    }
+    
+@app.get("/")
+async def home():
+    return {
+        "app": settings.app_name,
+        "version": "v1"
     }

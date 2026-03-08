@@ -14,3 +14,5 @@ build
 htmlcov
 .env
 .DS_Store
+.github/
+.github/instructions
