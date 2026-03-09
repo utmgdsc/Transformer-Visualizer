@@ -13,11 +13,11 @@ export default function Token() {
 
     <div className="pl-8 ">
 
-      <p className="text-sm text-gray-400 font-semibold">
+      <p className="text-sm text-gray-400">
         Phase 1: Embedding
       </p>
 
-      <h2 className="text-2xl font-bold mb-20">
+      <h2 className="text-3xl font-bold ">
         Step 1.1 Tokenization
       </h2>
 

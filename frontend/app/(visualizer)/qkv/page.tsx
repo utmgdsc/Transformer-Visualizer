@@ -23,9 +23,12 @@ export default function QKVPage() {
         </button>
 
         <button
-          onClick={() => router.push("/attention" + window.location.search)}
-          className="border px-4 py-2"
-        >
+          onClick={() => {
+            const params = new URLSearchParams(window.location.search)
+            params.set("step", "0")
+            router.push("/attention?" + params.toString())
+          }}
+          className="border px-4 py-2">
         →
         </button>
 
