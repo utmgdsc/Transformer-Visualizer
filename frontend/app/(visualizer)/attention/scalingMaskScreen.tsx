@@ -11,123 +11,111 @@ export default function ScalingMask() {
 
   return (
 
-<div className="px-8 ">
+<div className="px-8">
 
-  <div>
-    <p className="text-gray-400">Phase 3: Attention Phase</p>
+  <div className="mb-12">
+    <p className="text-gray-400 text-sm">Phase 3: Attention</p>
 
     <h2 className="text-3xl font-bold">
-      Step 3.2 Scaling Mask
+      Step 3.2 Scaling Scores and Hiding Future Tokens
     </h2>
   </div>
 
 
-  <div className="flex justify-center mt-20 text-6xl items-center gap-8">
-
-    <span>Scaling Mask</span>
-
-    <span>=</span>
-
-    <div className="flex flex-col items-center text-4xl">
-
-      <span>
-        Q K<sup>T</sup>
-      </span>
-
-      <div className="border-t border-gray-300 w-28 my-2"></div>
-
-      <span className="text-3xl">
-        √d<sub>k</sub>
-      </span>
-
-    </div>
-
-    <span>+</span>
-
-    <span>M</span>
-
-  </div>
+  <div className="flex items-center justify-center gap-32 mt-10">
 
 
-  <div className="flex justify-center mt-12 text-7xl">
-    ↓
-  </div>
+    <div className="flex items-center gap-8 text-6xl">
 
+      <div className="flex flex-col items-center text-5xl leading-none">
 
-  <div className="flex justify-center items-start gap-20 mt-16">
-
-    <div
-      className="grid gap-6 text-xl items-center"
-      style={{
-        gridTemplateColumns: `120px repeat(${tokens.length}, 40px)`
-      }}
-    >
-
-      <div></div>
-
-      {tokens.map((token,i) => (
-        <span key={"col"+i} className="text-center">
-          {token}
+        <span>
+          QK<sup>T</sup>
         </span>
-      ))}
+
+        <div className="border-t border-gray-300 w-32 my-2"></div>
+
+        <span>
+          √d<sub>k</sub>
+        </span>
+
+      </div>
+
+      <span>+</span>
+
+      <span className="text-5xl">Mask (M)</span>
+
+      <span className="text-7xl">→</span>
+
+    </div>
 
 
-      {tokens.map((rowToken,i) => (
-        <>
+    <div className="flex flex-col items-center gap-6">
 
-          <span key={"row"+i} className="text-right pr-4">
-            {rowToken}
+      <div
+        className="grid gap-5 text-sm items-center"
+        style={{
+          gridTemplateColumns: `120px repeat(${tokens.length}, 40px)`
+        }}
+      >
+
+        <div></div>
+
+        {tokens.map((token,i) => (
+          <span key={"col"+i} className="text-center text-gray-400">
+            {token}
           </span>
+        ))}
 
-          {tokens.map((_,j) => {
+        {tokens.map((rowToken,i) => (
+          <>
+            <span key={"row"+i} className="text-right pr-4 text-gray-400">
+              {rowToken}
+            </span>
 
-            const masked = j > i
+            {tokens.map((_,j) => {
 
-            return (
-              <div
-                key={`${i}-${j}`}
-                className={`w-6 h-6 ${
-                  masked
-                    ? "bg-gray-200"
-                    : "bg-gray-600"
-                }`}
-              />
-            )
-          })}
+              const masked = j > i
 
-        </>
-      ))}
+              return (
+                <div
+                  key={`${i}-${j}`}
+                  className={`w-6 h-6 rounded-sm ${
+                    masked
+                      ? "bg-gray-200"
+                      : "bg-gray-600"
+                  }`}
+                />
+              )
+            })}
+          </>
+        ))}
 
-    </div>
-
-
-    <div className="flex flex-col gap-6 mt-10">
-
-      <div className="flex items-center gap-4">
-        <div className="w-8 h-5 bg-gray-200"></div>
-        <span>= Masked</span>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="w-8 h-5 bg-gray-600"></div>
-        <span>= Valid Scale Value</span>
+
+      <p className="text-gray-400 text-sm ml-30">
+        Scaled + Masked Score Matrix
+      </p>
+
+
+      <div className="flex gap-8 text-sm text-gray-400 ml-30">
+
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-4 bg-gray-200"></div>
+          <span>Masked (future token)</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-4 bg-gray-600"></div>
+          <span>Valid score</span>
+        </div>
+
       </div>
 
     </div>
 
   </div>
-
-
-  <div className="flex flex-col items-center mt-24">
-
-    <div className="w-[500px] h-4 bg-gray-300"></div>
-
-    <p className="mt-6 text-gray-300">
-      Some Range goes here
-    </p>
-
-  </div>
-
 
 </div>
 

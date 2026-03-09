@@ -17,7 +17,7 @@ export default function DotProductScreen() {
     <p className="text-gray-400">Phase 3: Attention Phase</p>
 
     <h2 className="text-3xl font-bold ">
-      Step 3.1 Calculating the Dot Product
+      Step 3.1 Computing Query-Key Similarity
     </h2>
   </div>
 
@@ -90,7 +90,7 @@ export default function DotProductScreen() {
       </div>
 
 
-      <div className="flex items-center space-x-4 mt-10 text-xl">
+      <div className="flex items-center space-x-4 mt-10 text-xl ml-30">
 
         <span>Min</span>
 
