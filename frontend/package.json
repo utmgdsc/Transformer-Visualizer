@@ -9,17 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@base-ui/react": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "geist": "^1.7.0",
     "lucide-react": "^0.575.0",
-=======
-    "@emotion/react": "^11.14.0",
-    "@mantine/core": "^8.3.16",
-    "@mantine/hooks": "^8.3.16",
->>>>>>> Joshua/TV-29-Implementing-QKV
     "next": "16.1.6",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
