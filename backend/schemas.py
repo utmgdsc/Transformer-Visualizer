@@ -23,3 +23,12 @@ class InferenceResponse(BaseModel):
     
     # top k token predictions with probabilities
     next_token_probabilities: List[TokenProbability]
+
+class TokenizeRequest(BaseModel):
+    text: str
+
+class TokenizeResponse(BaseModel):
+    input_text: str
+    token_ids: List[int]
+    tokens: List[str]
+    token_count: int

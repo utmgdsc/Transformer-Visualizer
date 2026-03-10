@@ -5,6 +5,8 @@ from typing import List
 from models.model_loader import model_manager
 from schemas import InferenceRequest, InferenceResponse, TokenProbability
 
+from schemas import TokenizeRequest, TokenizeResponse
+
 router = APIRouter(prefix="/v1", tags=["inference"])
 
 @router.post("/predict", response_model=InferenceResponse)
@@ -95,3 +97,25 @@ async def generate_text(request: InferenceRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
+@router.post("/tokenize")
+async def tokenize(request: TokenizeRequest):
+    if not model_manager.is_loaded():
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    model = model_manager.get_model()
+    
+    try:
+        tokens = model.to_tokens(request.text, prepend_bos=False)
+        token_ids = tokens[0].tolist()
+        token_strings = [model.to_string(t) for t in token_ids]
+        
+        return {
+            "input_text": request.text,
+            "token_ids": token_ids,
+            "tokens": token_strings,
+            "token_count": len(token_ids)
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Tokenization failed: {str(e)}")

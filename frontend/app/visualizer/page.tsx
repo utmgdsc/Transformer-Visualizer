@@ -1,4 +1,4 @@
-export default function EmbeddingAddition() {
+export default function Embedding() {
     return (
 <div className=" px-8">
   <div className="max-w-5xl ml-8">
