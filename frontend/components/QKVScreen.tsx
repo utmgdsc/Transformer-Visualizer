@@ -3,22 +3,40 @@
 import { useState } from "react"
 import FlowArrow from "./FlowArrow"
 
-export default function QKVScreen(
-{
+export default function QKVScreen({
   stepIndex,
-  setStepIndex
+  setStepIndex,
+  inputText
 }:{
   stepIndex:number
   setStepIndex:(n:number)=>void
-}
-){
+  inputText:string
+}){
 
-const tokens = ["The","transformer","model","processes"]
+const tokens =
+  inputText.trim().length > 0
+    ? inputText.split(/\s+/)
+    : []
+
 const [selectedToken,setSelectedToken] = useState(0)
 
-const Q = [0.3,0.8,0.1,0.6,0.1]
-const K = [0.4,0.9,0.2,0.7,0.2]
-const V = [0.5,0.8,0.2,0.7,0.3]
+/* deterministic vector generator */
+function generateVector(token:string, offset:number){
+
+  let seed = 0
+  for(let i=0;i<token.length;i++){
+    seed += token.charCodeAt(i)
+  }
+
+  return Array.from({length:5},(_,i)=>{
+    const val = Math.sin(seed*(i+1+offset))*0.9
+    return parseFloat(val.toFixed(2))
+  })
+}
+
+const Q = tokens.length ? generateVector(tokens[selectedToken],1) : []
+const K = tokens.length ? generateVector(tokens[selectedToken],2) : []
+const V = tokens.length ? generateVector(tokens[selectedToken],3) : []
 
 const SmallVector = ({data,color}:{data:number[],color:string}) => (
 <div className="flex gap-2 mt-2">
@@ -63,13 +81,11 @@ selectedToken === i
 
 <FlowArrow />
 
-
 <div className="px-5 py-2 bg-purple-600/20 border border-purple-600 rounded text-purple-300 text-sm font-mono">
 Embedding X (768)
 </div>
 
 <FlowArrow />
-
 
 <div className="grid grid-cols-3 gap-6 items-start mt-2">
 
@@ -132,7 +148,6 @@ V
 </div>
 
 
-
 <div className="bg-[#151517] border border-[#2a2a2e] rounded-xl p-6 flex flex-col h-full">
 
 <div className="flex flex-col gap-4">
@@ -177,5 +192,4 @@ Next →
 </div>
 
 )
-
 }

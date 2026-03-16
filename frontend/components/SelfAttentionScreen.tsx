@@ -1,30 +1,63 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import FlowArrow from "./FlowArrow"
 
-export default function SelfAttentionScreen(
-{
+export default function SelfAttentionScreen({
   stepIndex,
-  setStepIndex
+  setStepIndex,
+  inputText
 }:{
   stepIndex:number
   setStepIndex:(n:number)=>void
-}
-){
+  inputText:string
+}){
+
+const tokens =
+  inputText.trim().length > 0
+    ? inputText.split(/\s+/)
+    : []
 
 const [queryToken,setQueryToken] = useState(0)
 
-const tokens = ["The","cat","sat","on","the","mat"]
+/* reset selected token if input changes */
+useEffect(()=>{
+  setQueryToken(0)
+},[inputText])
 
-const attentionMatrix = [
-[0.1,0.2,0.3,0.1,0.2,0.1],
-[0.2,0.2,0.1,0.3,0.1,0.1],
-[0.1,0.1,0.2,0.2,0.3,0.1],
-[0.1,0.2,0.1,0.1,0.4,0.1],
-[0.1,0.1,0.2,0.3,0.2,0.1],
-[0.05,0.05,0.1,0.1,0.2,0.5]
-]
+/* deterministic attention generator */
+function generateAttention(tokens:string[]){
+
+  const matrix:number[][] = []
+
+  tokens.forEach((token,i)=>{
+
+    const row:number[] = []
+
+    tokens.forEach((_,j)=>{
+
+      let seed = token.charCodeAt(0) + j * 13 + i * 7
+      const value = Math.abs(Math.sin(seed)) + 0.1
+
+      row.push(value)
+
+    })
+
+    const sum = row.reduce((a,b)=>a+b,0)
+
+    matrix.push(row.map(v=>v/sum))
+
+  })
+
+  return matrix
+}
+
+const attentionMatrix =
+  tokens.length > 0
+    ? generateAttention(tokens)
+    : []
+
+const activeToken = tokens[queryToken] ?? ""
 
 return(
 
@@ -36,7 +69,8 @@ return(
 CLICK A QUERY TOKEN TO SEE HOW MUCH IT ATTENDS TO EACH OTHER TOKEN
 </p>
 
-<div className="flex gap-3">
+<div className="flex flex-wrap gap-3">
+
 {tokens.map((token,i)=>(
 <button
 key={i}
@@ -50,14 +84,15 @@ queryToken === i
 {token}
 </button>
 ))}
+
 </div>
 
 <FlowArrow/>
 
-<div className="flex items-center justify-center gap-4 text-sm">
+<div className="flex items-center justify-center gap-4 text-sm flex-wrap">
 
 <div className="px-3 py-2 bg-red-500/20 text-red-300 rounded font-mono">
-Q_{tokens[queryToken]}
+Q_{activeToken}
 </div>
 
 <div className="text-zinc-500 text-lg">
@@ -87,20 +122,20 @@ Softmax
 </div>
 
 <div className="text-sm text-zinc-400">
-Attention weights for "{tokens[queryToken]}":
+Attention weights for "{activeToken}":
 </div>
 
 <div className="flex flex-col gap-3">
 
 {tokens.map((token,i)=>{
 
-const value = attentionMatrix[queryToken][i]
+const value = attentionMatrix[queryToken]?.[i] ?? 0
 
 return(
 
 <div key={i} className="flex items-center gap-4">
 
-<span className="w-12">{token}</span>
+<span className="w-20">{token}</span>
 
 <div className="flex-1 h-4 bg-[#1c1c1f] rounded">
 <div
@@ -143,7 +178,6 @@ attention weights.
 <div className="bg-[#1c1c1f] p-3 rounded text-sm font-mono">
 weights = softmax(QKᵀ / √dₖ)
 </div>
-
 
 </div>
 

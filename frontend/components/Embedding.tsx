@@ -1,25 +1,42 @@
 "use client"
 import FlowArrow from "./FlowArrow"
-
 import { useState } from "react"
 
-export default function Embedding(
-    {
-        stepIndex,
-        setStepIndex
-      }: {
-        stepIndex: number
-        setStepIndex: (n: number) => void
-      }
-) {
+export default function Embedding({
+  stepIndex,
+  setStepIndex,
+  inputText
+}: {
+  stepIndex: number
+  setStepIndex: (n: number) => void
+  inputText: string
+}) {
 
-  const tokens = ["The", "transformer", "model", "processes"]
+  // tokens from user input
+  const tokens =
+    inputText.trim().length > 0
+      ? inputText.split(/\s+/)
+      : []
+
   const [selectedToken, setSelectedToken] = useState(0)
 
-  const embedding = [
-    -0.91, -0.42, 0.87, -0.73, 0.44, 0.22,
-    0.93, 0.23, 0.68, -0.11
-  ]
+  // fake deterministic embedding generator
+  function generateEmbedding(token: string) {
+    let seed = 0
+    for (let i = 0; i < token.length; i++) {
+      seed += token.charCodeAt(i)
+    }
+
+    return Array.from({ length: 10 }, (_, i) => {
+      const x = Math.sin(seed * (i + 1)) * 0.9
+      return parseFloat(x.toFixed(2))
+    })
+  }
+
+  const embedding =
+    tokens.length > 0
+      ? generateEmbedding(tokens[selectedToken])
+      : []
 
   return (
 
@@ -51,10 +68,11 @@ export default function Embedding(
 
         <FlowArrow />
 
-        <div className="text-sm text-zinc-400 text-center">
-          VECTOR FOR "{tokens[selectedToken].toUpperCase()}" — 768 DIMS, SHOWING 10
-        </div>
-
+        {tokens.length > 0 && (
+          <div className="text-sm text-zinc-400 text-center">
+            VECTOR FOR "{tokens[selectedToken].toUpperCase()}" — 768 DIMS, SHOWING 10
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 w-full max-w-3xl">
 
@@ -90,45 +108,44 @@ export default function Embedding(
 
       </div>
 
-        <div className="bg-[#151517] border border-[#2a2a2e] rounded-xl p-6 flex flex-col">
+
+      <div className="bg-[#151517] border border-[#2a2a2e] rounded-xl p-6 flex flex-col">
 
         <div className="flex flex-col gap-4">
 
-        <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold">
             Embeddings
-        </h2>
+          </h2>
 
-        <p className="text-zinc-400 text-sm leading-relaxed">
+          <p className="text-zinc-400 text-sm leading-relaxed">
             A learned matrix converts each ID into a dense vector. Similar words end up
             with similar vectors.
-        </p>
+          </p>
 
-        <div className="bg-[#1c1c1f] p-3 rounded text-sm font-mono">
+          <div className="bg-[#1c1c1f] p-3 rounded text-sm font-mono">
             E = Lookup(id) <br/>
-            X ∈ ℝ^(4×768)
-        </div>
+            X ∈ ℝ^(n×768)
+          </div>
 
-        <div className="border-l-2 border-purple-500 pl-4 text-zinc-400 text-sm">
+          <div className="border-l-2 border-purple-500 pl-4 text-zinc-400 text-sm">
             Purple bars = positive dims, orange = negative. Intensity shows magnitude.
-        </div>
+          </div>
 
         </div>
 
         <div className="flex justify-end mt-auto pt-6">
 
-        <button
+          <button
             onClick={() => setStepIndex(stepIndex + 1)}
             className="border border-[#2a2a2e] px-5 py-2 rounded-lg hover:bg-[#1c1c1f]"
-        >
+          >
             Next →
-        </button>
+          </button>
 
         </div>
 
-</div>
+      </div>
 
-
-      
     </div>
 
   )
