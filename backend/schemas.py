@@ -85,3 +85,102 @@ class AblationResponse(BaseModel):
     # generation results
     generated_text: str
     baseline_text: str  # generation without ablation for comparison
+
+
+class QKVVectors(BaseModel):
+    # QKV vectors for a specific token position
+    token_position: int
+    query: List[float]  # [d_model]
+    key: List[float]    # [d_model]
+    value: List[float]  # [d_model]
+
+
+class QKVResponse(BaseModel):
+    # input information
+    input_text: str
+    tokens: List[str]
+    
+    # QKV vectors for each layer and optionally specific head
+    layer: int
+    head: Optional[int]  # None if all heads averaged, specific index otherwise
+    
+    # QKV vectors for each token in the sequence
+    qkv_vectors: List[QKVVectors]
+
+
+
+class QKVRequest(BaseModel):
+    # input text to analyze
+    text: str
+    
+    # layer and head selection
+    layer: int  # required for QKV extraction
+    head: Optional[int] = None  # if None, average across all heads
+    
+    # which token positions to extract (None = all)
+    token_positions: Optional[List[int]] = None
+    
+    # language selection
+    language: str = "en"
+
+
+class ResidualContribution(BaseModel):
+    # how much each component contributes to the residual
+    mlp_norm: float  # magnitude of MLP output
+    attn_norm: float  # magnitude of attention output
+    ratio: float  # MLP norm / attention norm
+
+
+class TopNeuron(BaseModel):
+    # identifies important neurons in MLP
+    index: int
+    value: float
+
+
+class MLPOutput(BaseModel):
+    # MLP output for a specific token
+    token_position: int
+    mlp_output: List[float]  # [d_model]
+    
+    # statistics about MLP activation
+    mlp_mean: float
+    mlp_std: float
+    mlp_max: float
+    mlp_min: float
+    
+    # residual information from attention head
+    attention_residual: Optional[List[float]] = None
+    attention_mean: Optional[float] = None
+    attention_std: Optional[float] = None
+    
+    # how residuals combine through the layer
+    residual_contribution: Optional[ResidualContribution] = None
+    
+    # most important neurons in this layer for this token
+    top_neurons: List[TopNeuron]
+
+
+class MLPRequest(BaseModel):
+    # input text to analyze
+    text: str
+    
+    # layer selection (required)
+    layer: int
+    
+    # which token positions to extract (None = all)
+    token_positions: Optional[List[int]] = None
+    
+    # language selection
+    language: str = "en"
+
+
+class MLPResponse(BaseModel):
+    # input information
+    input_text: str
+    tokens: List[str]
+    
+    # MLP layer information
+    layer: int
+    
+    # MLP outputs and residual data for each token
+    mlp_outputs: List[MLPOutput]

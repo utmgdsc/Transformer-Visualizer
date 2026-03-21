@@ -186,6 +186,134 @@ response:
 - `temperature` (optional, default: 1.0): sampling temperature
 - `language` (optional, default: "en"): language model to use
 
+### extract QKV vectors
+
+```text
+POST /v1/qkv
+```
+
+request body:
+
+```json
+{
+  "text": "The quick brown fox",
+  "layer": 2,
+  "head": 3,
+  "token_positions": [0, 1, 3],
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The quick brown fox",
+  "tokens": ["The", " quick", " brown", " fox"],
+  "layer": 2,
+  "head": 3,
+  "qkv_vectors": [
+    {
+      "token_position": 0,
+      "query": [0.123, -0.456, 0.789, ...],
+      "key": [0.234, -0.567, 0.890, ...],
+      "value": [0.345, -0.678, 0.901, ...]
+    },
+    {
+      "token_position": 1,
+      "query": [0.456, -0.789, 0.123, ...],
+      "key": [0.567, -0.890, 0.234, ...],
+      "value": [0.678, -0.901, 0.345, ...]
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+- `text` (required): input text to analyze
+- `layer` (required): layer index to extract QKV from
+- `head` (optional): specific attention head to extract (None = average across all heads)
+- `token_positions` (optional): list of token indices to extract (None = all tokens)
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
+**Notes:**
+
+- Query (Q): What the token is looking for in other tokens
+- Key (K): How the token represents itself to be searched for
+- Value (V): What the token contributes to the output when attended to
+- Each vector has dimension `d_head` (typically 64 for smaller models)
+- When `head` is None, vectors are averaged across all heads in that layer
+
+### extract MLP outputs and residuals
+
+```text
+POST /v1/mlp
+```
+
+request body:
+
+```json
+{
+  "text": "The quick brown fox",
+  "layer": 2,
+  "token_positions": [0, 1, 3],
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The quick brown fox",
+  "tokens": ["The", " quick", " brown", " fox"],
+  "layer": 2,
+  "mlp_outputs": [
+    {
+      "token_position": 0,
+      "mlp_output": [0.123, -0.456, 0.789, ...],
+      "mlp_mean": 0.045,
+      "mlp_std": 0.342,
+      "mlp_max": 2.156,
+      "mlp_min": -1.834,
+      "attention_residual": [0.234, -0.567, 0.890, ...],
+      "attention_mean": 0.078,
+      "attention_std": 0.298,
+      "residual_contribution": {
+        "mlp_norm": 4.567,
+        "attn_norm": 3.892,
+        "ratio": 1.173
+      },
+      "top_neurons": [
+        {"index": 1024, "value": 2.156},
+        {"index": 2048, "value": 1.989},
+        {"index": 512, "value": 1.845}
+      ]
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+- `text` (required): input text to analyze
+- `layer` (required): layer index to extract MLP from
+- `token_positions` (optional): list of token indices to extract (None = all tokens)
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
+**Notes:**
+
+- **MLP Output**: Feed-forward network output for each token (dimension d_model)
+- **Statistics**: Mean, std, max, min values show the distribution of MLP activations
+- **Attention Residual**: Output from the attention head (flows into MLP via residual connection)
+- **Residual Contribution:**
+  - `mlp_norm`: Magnitude of MLP output
+  - `attn_norm`: Magnitude of attention output
+  - `ratio`: How much MLP dominates vs attention (>1 means MLP is stronger)
+- **Top Neurons**: Most important neurons that fire strongly for this token
+  - Helps understand which parts of the feed-forward network are active
+
 ## request parameters
 
 - `text` (required): input text to generate from
