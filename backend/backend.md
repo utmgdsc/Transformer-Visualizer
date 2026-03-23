@@ -186,6 +186,33 @@ response:
 - `temperature` (optional, default: 1.0): sampling temperature
 - `language` (optional, default: "en"): language model to use
 
+
+### LLM-as-a-judge
+
+```text
+POST /v1/judge
+```
+
+request body:
+
+```json
+{
+  "input_text": "the largest country is",
+  "generated_text": "russia"
+}
+```
+
+response:
+
+```json
+{
+  "score": 1,
+  "conclusion": "low",
+  "reason": "The predicted word 'russia' is factually correct as Russia is indeed the largest country, and it also makes sense grammatically and contextually as the next word, demonstrating a strong logical connection to the input text.",
+  "passed": true
+}
+```
+
 ## request parameters
 
 - `text` (required): input text to generate from

@@ -85,3 +85,17 @@ class AblationResponse(BaseModel):
     # generation results
     generated_text: str
     baseline_text: str  # generation without ablation for comparison
+
+
+class LLMJudgeRequest(BaseModel):
+    # input information
+    input_text: str
+    generated_text: str
+
+
+class LLMJudgeResponse(BaseModel):
+    # hallucination metric info
+    score: float # 0-1, higher = more hallucination
+    conclusion: str # "low", "medium", "high"
+    reason: str # explanation from judge model
+    passed: bool # if above threshold, True. else, False
