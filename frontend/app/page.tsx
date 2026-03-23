@@ -10,6 +10,7 @@ import SelfAttentionScreen from "@/components/SelfAttentionScreen"
 import AttentionOutScreen from "@/components/AttentionOutScreen"
 import MLPScreen from "@/components/MLPResidual"
 import ProbabilitiesScreen from "@/components/OutputScreen"
+
 export default function Home() {
 
   const steps = [
@@ -23,11 +24,12 @@ export default function Home() {
     "Output"
   ]
 
-  const [stepIndex, setStepIndex] = useState(4)
+  const [stepIndex, setStepIndex] = useState(0)
   const [layer, setLayer] = useState(1)
   const [language, setLanguage] = useState("English")
-
   const [inputText, setInputText] = useState("The transformer model processes")
+
+  const [runSignal, setRunSignal] = useState(0)
 
   return (
 
@@ -45,7 +47,13 @@ export default function Home() {
           className="flex-1 bg-[#1c1c1f] border border-[#2a2a2e] rounded-xl px-4 py-3 outline-none"
         />
 
-        <button className="bg-[#2a2a2e] px-6 py-3 rounded-xl border border-[#3a3a3f] hover:bg-[#333338]">
+        <button
+          onClick={() => {
+            setStepIndex(0)
+            setRunSignal(prev => prev + 1)
+          }}
+          className="bg-[#2a2a2e] px-6 py-3 rounded-xl border border-[#3a3a3f] hover:bg-[#333338]"
+        >
           ▶ Run
         </button>
 
@@ -146,61 +154,17 @@ export default function Home() {
               stepIndex={stepIndex}
               setStepIndex={setStepIndex}
               inputText={inputText}
+              runSignal={runSignal}   
             />
           )}
 
-          {stepIndex === 1 && (
-            <TokenIDScreen
-              stepIndex={stepIndex}
-              setStepIndex={setStepIndex}
-              inputText={inputText}
-            />
-          )}
-
-          {stepIndex === 2 && (
-            <Embedding
-              stepIndex={stepIndex}
-              setStepIndex={setStepIndex}
-              inputText={inputText}
-            />
-          )}
-
-          {stepIndex === 3 && (
-            <QKVScreen
-              stepIndex={stepIndex}
-              setStepIndex={setStepIndex}
-              inputText={inputText}
-              layer={layer}
-              setLayer={setLayer}
-            />
-          )}
-
-          {stepIndex === 4 && (
-            <SelfAttentionScreen
-              stepIndex={stepIndex}
-              setStepIndex={setStepIndex}
-              inputText={inputText}
-              layer={layer}
-            />
-          )}
-          {stepIndex === 5 && (
-            <AttentionOutScreen
-              stepIndex={stepIndex}
-              setStepIndex={setStepIndex}
-              inputText={inputText}
-              layer={layer}        // ← add this
-            />)}
-          {stepIndex === 6 &&  (
-            <MLPScreen
-            stepIndex={stepIndex}
-            setStepIndex={setStepIndex}
-            inputText={inputText} 
-            />)}
-          
-          {stepIndex === 7 && (
-            <ProbabilitiesScreen
-            inputText={inputText} 
-            />)}
+          {stepIndex === 1 && <TokenIDScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} />}
+          {stepIndex === 2 && <Embedding stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} />}
+          {stepIndex === 3 && <QKVScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} setLayer={setLayer} />}
+          {stepIndex === 4 && <SelfAttentionScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} />}
+          {stepIndex === 5 && <AttentionOutScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} />}
+          {stepIndex === 6 && <MLPScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} />}
+          {stepIndex === 7 && <ProbabilitiesScreen inputText={inputText} />}
 
         </div>
 

@@ -246,7 +246,6 @@ export default function AttentionOutScreen({
             <div className="flex flex-col items-center gap-3">
               <div className="text-sm text-zinc-500 flex items-center gap-2">
                 Attention Output Vector
-                <span className="text-zinc-600 text-xs">(static)</span>
               </div>
               <VectorSquares data={outVec} color="bg-purple-400/30 text-purple-300" />
             </div>
