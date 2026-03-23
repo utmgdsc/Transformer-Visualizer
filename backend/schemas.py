@@ -184,3 +184,32 @@ class MLPResponse(BaseModel):
     
     # MLP outputs and residual data for each token
     mlp_outputs: List[MLPOutput]
+
+
+class TokenEmbedding(BaseModel):
+    # token and its embedding vector
+    token: str
+    token_id: int
+    embedding: List[float]  # [d_model]
+
+
+class TokenizationRequest(BaseModel):
+    # input text to tokenize
+    text: str
+    
+    # language selection
+    language: str = "en"
+
+
+class TokenizationResponse(BaseModel):
+    # input text
+    input_text: str
+    
+    # total number of tokens
+    num_tokens: int
+    
+    # embedding dimension
+    embedding_dim: int
+    
+    # tokens with their IDs and embedding vectors
+    token_embeddings: List[TokenEmbedding]

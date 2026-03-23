@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import FlowArrow from "./FlowArrow"
 
 export default function TokenizationScreen({
@@ -10,10 +13,53 @@ export default function TokenizationScreen({
   inputText: string
 }) {
 
-  // Tokenization (simple word split for now)
-  const tokens = inputText.trim().length > 0
-    ? inputText.split(/\s+/)
-    : []
+  const [tokens, setTokens] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Call API to tokenize input text
+  useEffect(() => {
+    if (inputText.trim().length === 0) {
+      setTokens([])
+      setError(null)
+      return
+    }
+
+    const tokenize = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: inputText,
+            language: "en",
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Tokenization failed: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        // Filter out special tokens (endoftext, startoftext, etc.)
+        const filteredTokens = data.token_embeddings
+          .map((te: any) => te.token)
+          .filter((token: string) => !token.match(/^<\|.*\|>$|^\[.*\]$/))
+        setTokens(filteredTokens)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error")
+        setTokens([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    tokenize()
+  }, [inputText])
 
   return (
 
@@ -35,18 +81,32 @@ export default function TokenizationScreen({
           TOKENS ({tokens.length})
         </div>
 
-        <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+        {loading && (
+          <div className="text-zinc-500 text-sm">
+            Tokenizing...
+          </div>
+        )}
 
-          {tokens.map((token, i) => (
-            <div
-              key={i}
-              className="min-w-[110px] px-4 py-2 border border-[#2a2a2e] rounded-lg text-center"
-            >
-              {token}
-            </div>
-          ))}
+        {error && (
+          <div className="text-red-500 text-sm">
+            Error: {error}
+          </div>
+        )}
 
-        </div>
+        {!loading && !error && (
+          <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+
+            {tokens.map((token, i) => (
+              <div
+                key={i}
+                className="min-w-[110px] px-4 py-2 border border-[#2a2a2e] rounded-lg text-center"
+              >
+                {token}
+              </div>
+            ))}
+
+          </div>
+        )}
 
       </div>
 

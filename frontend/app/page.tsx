@@ -170,6 +170,8 @@ export default function Home() {
               stepIndex={stepIndex}
               setStepIndex={setStepIndex}
               inputText={inputText}
+              layer={layer}
+              setLayer={setLayer}
             />
           )}
 
@@ -186,6 +188,7 @@ export default function Home() {
               stepIndex={stepIndex}
               setStepIndex={setStepIndex}
               inputText={inputText}
+              layer={layer}        // ← add this
             />)}
           {stepIndex === 6 &&  (
             <MLPScreen

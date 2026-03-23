@@ -1,122 +1,167 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+
 function AttentionMatrix({
-    tokens,
-    selectedToken
-  }: {
-    tokens: string[]
-    selectedToken: number
-  }) {
-  
-    const size = tokens.length
-  
-    function getValue(i: number, j: number) {
-      if (j > i) return null 
-      return Math.abs(Math.sin((i + 1) * (j + 2)))
-    }
-  
-    return (
-      <div className="flex flex-col items-center gap-1">
-  
-        <div className="flex gap-1 mb-1">
-          {tokens.map((t, i) => (
-            <div key={i} className="w-4 text-[10px] text-center text-zinc-500">
-              {t[0]}
-            </div>
-          ))}
+  tokens,
+  selectedToken
+}: {
+  tokens: string[]
+  selectedToken: number
+}) {
+  const size = tokens.length
+
+  function getValue(i: number, j: number) {
+    if (j > i) return null
+    return Math.abs(Math.sin((i + 1) * (j + 2)))
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex gap-1 mb-1">
+        {tokens.map((t, i) => (
+          <div key={i} className="w-4 text-[10px] text-center text-zinc-500">
+            {t[0]}
+          </div>
+        ))}
+      </div>
+
+      {Array.from({ length: size }).map((_, i) => (
+        <div key={i} className="flex gap-1">
+          {Array.from({ length: size }).map((_, j) => {
+            const val = getValue(i, j)
+            const isSelectedRow = i === selectedToken
+            return (
+              <div
+                key={j}
+                className={`w-4 h-4 rounded-sm ${
+                  val === null
+                    ? "bg-[#1a1a1f]"
+                    : isSelectedRow
+                    ? "bg-purple-500"
+                    : "bg-zinc-600"
+                }`}
+                style={{ opacity: val === null ? 0.2 : 0.3 + (val ?? 0) * 0.7 }}
+              />
+            )
+          })}
         </div>
-  
-        {Array.from({ length: size }).map((_, i) => (
-          <div key={i} className="flex gap-1">
-  
-            {Array.from({ length: size }).map((_, j) => {
-  
-              const val = getValue(i, j)
-              const isSelectedRow = i === selectedToken
-  
-              return (
-                <div
-                  key={j}
-                  className={`w-4 h-4 rounded-sm
-                    ${
-                      val === null
-                        ? "bg-[#1a1a1f]"
-                        : isSelectedRow
-                          ? "bg-purple-500"
-                          : "bg-zinc-600"
-                    }
-                  `}
-                  style={{
-                    opacity: val === null ? 0.2 : 0.3 + (val ?? 0) * 0.7
-                  }}
-                />
-              )
-            })}
-  
-          </div>
-        ))}
-  
-      </div>
-    )
-  }
+      ))}
+    </div>
+  )
+}
 
-  function VectorSquares({
-    data,
-    color
-  }: {
-    data: number[]
-    color: string
-  }) {
-    return (
-      <div className="flex gap-3">
-        {data.map((v, i) => (
-          <div
-            key={i}
-            className={`${color} rounded-lg text-sm px-4 py-2`}
-          >
-            {v.toFixed(2)}
-          </div>
-        ))}
-      </div>
-    )
-  }
+function VectorSquares({ data, color }: { data: number[]; color: string }) {
+  return (
+    <div className="flex gap-3">
+      {data.map((v, i) => (
+        <div key={i} className={`${color} rounded-lg text-sm px-4 py-2`}>
+          {v.toFixed(2)}
+        </div>
+      ))}
+    </div>
+  )
+}
 
+// Static output vector seeded from token string
+function generateVector(seedStr: string, length = 4) {
+  let seed = 0
+  for (let i = 0; i < seedStr.length; i++) seed += seedStr.charCodeAt(i)
+  return Array.from({ length }, (_, i) => Math.sin(seed * (i + 1)) * 0.6)
+}
 
 export default function AttentionOutScreen({
   stepIndex,
   setStepIndex,
-  inputText
+  inputText,
+  layer
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
+  layer: number
 }) {
-
-  const tokens =
-    inputText.trim().length > 0
-      ? inputText.split(/\s+/)
-      : []
-
+  const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState(0)
+  const [valueVec, setValueVec] = useState<number[]>([])
+  const [loadingTokens, setLoadingTokens] = useState(false)
+  const [loadingQKV, setLoadingQKV] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
+  // ── Tokenize ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!inputText.trim()) { setTokens([]); return }
 
-  function generateVector(seedStr: string, length = 64) {
-    let seed = 0
-    for (let i = 0; i < seedStr.length; i++) {
-      seed += seedStr.charCodeAt(i)
+    const run = async () => {
+      setLoadingTokens(true)
+      setError(null)
+      try {
+        const res = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: inputText, language: "en" })
+        })
+        if (!res.ok) throw new Error(`Tokenize failed: ${res.status}`)
+        const data = await res.json()
+
+        // Filter special tokens
+        const filtered = data.token_embeddings.filter(
+          (te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/)
+        )
+        setTokens(filtered.map((te: any) => te.token))
+        setSelectedToken(0)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Tokenization failed")
+        setTokens([])
+      } finally {
+        setLoadingTokens(false)
+      }
     }
+    run()
+  }, [inputText])
 
-    return Array.from({ length }, (_, i) =>
-      Math.sin(seed * (i + 1)) * 0.6
-    )
-  }
+  // ── Fetch value vector via QKV ────────────────────────────────────────────
+  useEffect(() => {
+    if (tokens.length === 0 || !inputText.trim()) { setValueVec([]); return }
 
-  const fullValue = generateVector(tokens[selectedToken] + "_V")
-  const fullOutput = generateVector(tokens[selectedToken] + "_OUT")
+    const run = async () => {
+      setLoadingQKV(true)
+      try {
+        const res = await fetch("http://localhost:8000/v1/qkv", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: inputText,
+            layer: layer - 1,
+            head: null,
+            token_positions: [selectedToken],
+            language: "en"
+          })
+        })
+        if (!res.ok) throw new Error(`QKV failed: ${res.status}`)
+        const data = await res.json()
 
-  const valueVec = fullValue.slice(0, 4)
-  const outVec = fullOutput.slice(0, 4)
+        if (data.qkv_vectors?.[0]?.value) {
+          setValueVec(
+            data.qkv_vectors[0].value
+              .slice(0, 4)
+              .map((v: number) => parseFloat(v.toFixed(2)))
+          )
+        }
+      } catch (err) {
+        console.error("QKV fetch error:", err)
+        setValueVec([])
+      } finally {
+        setLoadingQKV(false)
+      }
+    }
+    run()
+  }, [inputText, tokens, selectedToken, layer])
+
+  // Static attention output — endpoint TBD
+  const outVec = tokens[selectedToken]
+    ? generateVector(tokens[selectedToken] + "_OUT")
+    : []
 
   return (
     <div className="flex w-full gap-10">
@@ -127,83 +172,104 @@ export default function AttentionOutScreen({
           APPLY ATTENTION TO PRODUCE OUTPUT (SHOWING 4 / 64 DIMENSIONS)
         </div>
 
-        <div className="flex gap-4 mb-12">
-          {tokens.map((t, i) => (
-            <button
-              key={i}
-              onClick={() => setSelectedToken(i)}
-              className={`px-5 py-2.5 rounded-xl border text-sm transition
-              ${
-                i === selectedToken
-                  ? "bg-purple-600 border-purple-400 text-white"
-                  : "bg-[#111114] border-[#2a2a2e] text-zinc-300 hover:border-zinc-500"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-col items-center gap-10">
-
-          <div className="text-base text-zinc-500">
-            Token:{" "}
-            <span className="text-purple-400 font-medium">
-              {tokens[selectedToken]}
-            </span>
+        {/* Error */}
+        {error && (
+          <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">
+            {error}
           </div>
+        )}
 
-          <div className="flex flex-col items-center gap-3">
-            <div className="text-sm text-zinc-500">
-              Attention (row for this token)
+        {/* Loading tokens */}
+        {loadingTokens && (
+          <div className="text-zinc-500 text-sm animate-pulse mb-6">
+            Tokenizing...
+          </div>
+        )}
+
+        {/* Token selector */}
+        {!loadingTokens && tokens.length > 0 && (
+          <div className="flex gap-4 mb-12 flex-wrap justify-center">
+            {tokens.map((t, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedToken(i)}
+                className={`px-5 py-2.5 rounded-xl border text-sm transition ${
+                  i === selectedToken
+                    ? "bg-purple-600 border-purple-400 text-white"
+                    : "bg-[#111114] border-[#2a2a2e] text-zinc-300 hover:border-zinc-500"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!loadingTokens && tokens.length > 0 && (
+          <div className="flex flex-col items-center gap-10">
+
+            <div className="text-base text-zinc-500">
+              Token:{" "}
+              <span className="text-purple-400 font-medium">
+                {tokens[selectedToken]}
+              </span>
             </div>
 
-            <AttentionMatrix
-              tokens={tokens}
-              selectedToken={selectedToken}
-            />
-          </div>
-
-          <div className="text-zinc-500 text-2xl">×</div>
-
-          <div className="flex flex-col items-center gap-3">
-            <div className="text-sm text-zinc-500">
-              Value Vector
+            {/* Attention matrix (static) */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-sm text-zinc-500">
+                Attention (row for this token)
+              </div>
+              <AttentionMatrix tokens={tokens} selectedToken={selectedToken} />
             </div>
 
-            <VectorSquares data={valueVec} color="bg-green-500" />
-          </div>
+            <div className="text-zinc-500 text-2xl">×</div>
 
-          <div className="text-zinc-500 text-xl">↓</div>
-
-          <div className="flex flex-col items-center gap-3">
-            <div className="text-sm text-zinc-500">
-              Attention Output Vector
+            {/* Value vector (live) */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-sm text-zinc-500 flex items-center gap-2">
+                Value Vector
+                {loadingQKV && (
+                  <span className="text-zinc-600 text-xs animate-pulse">fetching...</span>
+                )}
+              </div>
+              {valueVec.length > 0 ? (
+                <VectorSquares data={valueVec} color="bg-green-500/30 text-green-300" />
+              ) : (
+                !loadingQKV && <div className="text-zinc-600 text-sm">—</div>
+              )}
             </div>
 
-            <VectorSquares data={outVec} color="bg-purple-400" />
-          </div>
+            <div className="text-zinc-500 text-xl">↓</div>
 
-        </div>
+            {/* Attention output (static — endpoint TBD) */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-sm text-zinc-500 flex items-center gap-2">
+                Attention Output Vector
+                <span className="text-zinc-600 text-xs">(static)</span>
+              </div>
+              <VectorSquares data={outVec} color="bg-purple-400/30 text-purple-300" />
+            </div>
+
+          </div>
+        )}
 
       </div>
 
+      {/* Right panel */}
       <div className="w-[320px] bg-[#111114] border border-[#2a2a2e] rounded-2xl p-6 flex flex-col">
-
         <div>
-          <div className="text-lg font-semibold mb-4">
-            Attention Output
-          </div>
+          <div className="text-lg font-semibold mb-4">Attention Output</div>
 
-          <div className="text-sm text-zinc-400 mb-4 leading-relaxed">
+          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
             Each token attends to previous tokens using a row of the attention matrix.
-          </div>
+          </p>
 
-          <div className="text-sm text-zinc-400 mb-6 leading-relaxed">
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
             These weights scale the value vectors and are summed to form the output.
-          </div>
+          </p>
 
-          <div className="bg-[#1a1a1f] rounded-lg px-4 py-3 text-sm text-zinc-300">
+          <div className="bg-[#1a1a1f] rounded-lg px-4 py-3 text-sm text-zinc-300 mb-3">
             Showing first 4 of 64 dimensions
           </div>
         </div>
@@ -216,7 +282,6 @@ export default function AttentionOutScreen({
             Next →
           </button>
         </div>
-
       </div>
 
     </div>

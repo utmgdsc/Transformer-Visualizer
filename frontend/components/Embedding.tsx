@@ -1,6 +1,6 @@
 "use client"
 import FlowArrow from "./FlowArrow"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function Embedding({
   stepIndex,
@@ -12,31 +12,58 @@ export default function Embedding({
   inputText: string
 }) {
 
-  // tokens from user input
-  const tokens =
-    inputText.trim().length > 0
-      ? inputText.split(/\s+/)
-      : []
-
+  const [tokens, setTokens] = useState<string[]>([])
+  const [embeddings, setEmbeddings] = useState<number[][]>([])
   const [selectedToken, setSelectedToken] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // fake deterministic embedding generator
-  function generateEmbedding(token: string) {
-    let seed = 0
-    for (let i = 0; i < token.length; i++) {
-      seed += token.charCodeAt(i)
+  // Call API to tokenize and get embeddings
+  useEffect(() => {
+    if (inputText.trim().length === 0) {
+      setTokens([])
+      setEmbeddings([])
+      setError(null)
+      return
     }
 
-    return Array.from({ length: 10 }, (_, i) => {
-      const x = Math.sin(seed * (i + 1)) * 0.9
-      return parseFloat(x.toFixed(2))
-    })
-  }
+    const tokenize = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: inputText,
+            language: "en",
+          }),
+        })
 
-  const embedding =
-    tokens.length > 0
-      ? generateEmbedding(tokens[selectedToken])
-      : []
+        if (!response.ok) {
+          throw new Error(`Tokenization failed: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        // Filter out special tokens
+        const filtered = data.token_embeddings.filter((te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/))
+        setTokens(filtered.map((te: any) => te.token))
+        // Get first 10 dimensions of each embedding
+        setEmbeddings(filtered.map((te: any) => te.embedding.slice(0, 10)))
+        setSelectedToken(0)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error")
+        setTokens([])
+        setEmbeddings([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    tokenize()
+  }, [inputText])
 
   return (
 
@@ -48,27 +75,41 @@ export default function Embedding({
           CLICK A TOKEN TO INSPECT ITS EMBEDDING VECTOR
         </div>
 
-        <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+        {loading && (
+          <div className="text-zinc-500 text-sm">
+            Fetching embeddings...
+          </div>
+        )}
 
-          {tokens.map((t,i)=>(
-            <button
-              key={i}
-              onClick={()=>setSelectedToken(i)}
-              className={`min-w-[110px] px-4 py-2 rounded-lg border ${
-                selectedToken === i
-                ? "bg-purple-600 border-purple-600"
-                : "border-[#2a2a2e]"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        {error && (
+          <div className="text-red-500 text-sm">
+            Error: {error}
+          </div>
+        )}
 
-        </div>
+        {!loading && !error && (
+          <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+
+            {tokens.map((t, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedToken(i)}
+                className={`min-w-[110px] px-4 py-2 rounded-lg border ${
+                  selectedToken === i
+                    ? "bg-purple-600 border-purple-600"
+                    : "border-[#2a2a2e]"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+
+          </div>
+        )}
 
         <FlowArrow />
 
-        {tokens.length > 0 && (
+        {tokens.length > 0 && !loading && (
           <div className="text-sm text-zinc-400 text-center">
             VECTOR FOR "{tokens[selectedToken].toUpperCase()}" — 768 DIMS, SHOWING 10
           </div>
@@ -76,7 +117,7 @@ export default function Embedding({
 
         <div className="flex flex-col gap-3 w-full max-w-3xl">
 
-          {embedding.map((v,i)=>{
+          {embeddings.length > 0 && embeddings[selectedToken] && embeddings[selectedToken].map((v, i) => {
 
             const width = Math.abs(v) * 100
             const color = v >= 0 ? "bg-purple-500" : "bg-orange-400"
@@ -91,7 +132,7 @@ export default function Embedding({
                 <div className="flex-1 h-4 bg-[#1c1c1f] rounded">
                   <div
                     className={`h-4 rounded ${color}`}
-                    style={{width:`${width}%`}}
+                    style={{ width: `${width}%` }}
                   />
                 </div>
 

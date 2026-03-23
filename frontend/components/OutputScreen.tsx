@@ -1,69 +1,45 @@
 "use client"
 
+import { useState, useEffect } from "react"
+
 export default function ProbabilitiesScreen({
   inputText
 }: {
   inputText: string
 }) {
+  const [predictions, setPredictions] = useState<{ token: string; probability: number }[]>([])
+  const [selectedToken, setSelectedToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const tokens =
-    inputText.trim().length > 0
-      ? inputText.split(/\s+/)
-      : []
+  useEffect(() => {
+    if (!inputText.trim()) return
+    setSelectedToken(null)
+    fetchPredictions(inputText)
+  }, [inputText])
 
-  const lastToken = tokens[tokens.length - 1]
-
-
-  function generateVector(seedStr: string, length = 64) {
-    let seed = 0
-    for (let i = 0; i < seedStr.length; i++) {
-      seed += seedStr.charCodeAt(i)
+  async function fetchPredictions(text: string) {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("http://localhost:8000/v1/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, temperature: 1.0, top_k: 5 })
+      })
+      if (!res.ok) throw new Error(`Predict failed: ${res.status}`)
+      const data = await res.json()
+      setPredictions(data.next_token_probabilities)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Prediction failed")
+      setPredictions([])
+    } finally {
+      setLoading(false)
     }
-
-    return Array.from({ length }, (_, i) =>
-      Math.sin(seed * (i + 1)) * 0.6
-    )
   }
 
-  const finalVec = generateVector(lastToken + "_FINAL").slice(0, 4)
-
-
-  const vocab = [
-    "visualize",
-    "create",
-    "see",
-    "make",
-    "easily",
-    "quickly",
-    "explore",
-    "build"
-  ]
-
-
-  const logits = vocab.map((word, i) =>
-    Math.sin((i + 1) * finalVec[0] * 5)
-  )
-
-
-  function softmax(arr: number[]) {
-    const max = Math.max(...arr)
-    const exps = arr.map(v => Math.exp(v - max))
-    const sum = exps.reduce((a, b) => a + b, 0)
-    return exps.map(v => v / sum)
-  }
-
-  const probs = softmax(logits)
-
-
-  const sorted = vocab
-    .map((word, i) => ({
-      word,
-      prob: probs[i]
-    }))
-    .sort((a, b) => b.prob - a.prob)
-    .slice(0, 5)
-
-  const topWord = sorted[0].word
+  const displaySentence = inputText.trim()
+  const activeToken = selectedToken ?? predictions[0]?.token ?? ""
 
   return (
     <div className="flex w-full gap-10">
@@ -74,117 +50,110 @@ export default function ProbabilitiesScreen({
           PREDICT NEXT WORD
         </div>
 
+        {/* Sentence with predicted word highlighted */}
         <div className="text-lg text-zinc-300 mb-10 text-center">
-          {tokens.join(" ")}
+          {displaySentence}{" "}
+          {activeToken && (
+            <span className="text-purple-400 font-medium">{activeToken.trim()}</span>
+          )}
         </div>
 
-        <div className="flex flex-col items-center gap-3 mb-10">
-          <div className="text-sm text-zinc-500">
-            Model understanding of the sentence (Not showing all Dimensions)
+        {/* Error */}
+        {error && (
+          <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">
+            {error}
           </div>
+        )}
 
-          <VectorSquares data={finalVec} color="bg-purple-500" />
-        </div>
-
-        <div className="w-full max-w-md flex flex-col gap-3 mb-10">
-
-          {sorted.map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-
-              <div className={`w-28 text-sm ${
-                i === 0 ? "text-purple-400 font-medium" : "text-zinc-300"
-              }`}>
-                {item.word}
-              </div>
-
-              <div className="flex-1 h-2 bg-[#1c1c22] rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${
-                    i === 0 ? "bg-purple-500" : "bg-zinc-500"
-                  }`}
-                  style={{ width: `${item.prob * 100}%` }}
-                />
-              </div>
-
-              <div className="text-xs text-zinc-400 w-12 text-right">
-                {(item.prob * 100).toFixed(1)}%
-              </div>
-
-            </div>
-          ))}
-
-        </div>
-
-        <div className="w-full max-w-md flex flex-col gap-3">
-
-          <div className="text-sm text-zinc-500 mb-2">
-            Possible continuations
+        {/* Loading */}
+        {loading && (
+          <div className="text-zinc-500 text-sm animate-pulse mb-6">
+            Predicting...
           </div>
+        )}
 
-          {sorted.map((item, i) => (
-            <div
-              key={i}
-              className={`text-sm px-4 py-2 rounded-lg border transition
-              ${
-                i === 0
-                  ? "border-purple-500 bg-purple-500/10 text-purple-300"
-                  : "border-[#2a2a2e] text-zinc-300"
-              }`}
-            >
-              {tokens.join(" ")}{" "}
-              <span className="font-medium">{item.word}</span>
-              <span className="ml-2 text-xs text-zinc-400">
-                ({(item.prob * 100).toFixed(1)}%)
-              </span>
+        {!loading && predictions.length > 0 && (
+          <>
+            {/* Probability bars */}
+            <div className="w-full max-w-md flex flex-col gap-3 mb-10">
+              {predictions.map((item, i) => {
+                const isActive = (selectedToken ?? predictions[0].token) === item.token
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedToken(item.token)}
+                    className="flex items-center gap-3 w-full text-left group"
+                  >
+                    <div className={`w-28 text-sm transition ${
+                      isActive ? "text-purple-400 font-medium" : "text-zinc-400 group-hover:text-zinc-200"
+                    }`}>
+                      {item.token.trim()}
+                    </div>
+
+                    <div className="flex-1 h-2 bg-[#1c1c22] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isActive ? "bg-purple-500" : "bg-zinc-600 group-hover:bg-zinc-500"
+                        }`}
+                        style={{ width: `${item.probability * 100}%` }}
+                      />
+                    </div>
+
+                    <div className="text-xs text-zinc-400 w-12 text-right">
+                      {(item.probability * 100).toFixed(1)}%
+                    </div>
+                  </button>
+                )
+              })}
             </div>
-          ))}
 
-        </div>
+            {/* Possible continuations */}
+            <div className="w-full max-w-md flex flex-col gap-3">
+              <div className="text-sm text-zinc-500 mb-2">
+                Possible continuations
+              </div>
+              {predictions.map((item, i) => {
+                const isActive = (selectedToken ?? predictions[0].token) === item.token
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedToken(item.token)}
+                    className={`text-sm px-4 py-2 rounded-lg border text-left transition ${
+                      isActive
+                        ? "border-purple-500 bg-purple-500/10 text-purple-300"
+                        : "border-[#2a2a2e] text-zinc-300 hover:border-zinc-500"
+                    }`}
+                  >
+                    {displaySentence}{" "}
+                    <span className="font-medium">{item.token.trim()}</span>
+                    <span className="ml-2 text-xs text-zinc-400">
+                      ({(item.probability * 100).toFixed(1)}%)
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
 
       </div>
 
+      {/* Right panel */}
       <div className="w-[320px] bg-[#111114] border border-[#2a2a2e] rounded-2xl p-6 flex flex-col">
-
         <div>
-          <div className="text-lg font-semibold mb-4">
-            Next Token Prediction
-          </div>
+          <div className="text-lg font-semibold mb-4">Next Token Prediction</div>
 
-          <div className="text-sm text-zinc-400 mb-4 leading-relaxed">
+          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
             The model uses the final representation of the last token to
             predict what word comes next.
-          </div>
+          </p>
 
-          <div className="text-sm text-zinc-400 leading-relaxed">
-            The highest probability word is selected as the output.
-          </div>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            Click any word to see how the sentence would continue with that prediction.
+          </p>
         </div>
-
       </div>
 
-    </div>
-  )
-}
-
-
-
-function VectorSquares({
-  data,
-  color
-}: {
-  data: number[]
-  color: string
-}) {
-  return (
-    <div className="flex gap-3">
-      {data.map((v, i) => (
-        <div
-          key={i}
-          className={`${color} rounded-lg text-sm px-4 py-2`}
-        >
-          {v.toFixed(2)}
-        </div>
-      ))}
     </div>
   )
 }

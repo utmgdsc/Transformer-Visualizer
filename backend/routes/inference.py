@@ -3,7 +3,10 @@ import torch
 from typing import List
 
 from models.model_loader import model_manager
-from schemas import InferenceRequest, InferenceResponse, TokenProbability
+from schemas import (
+    InferenceRequest, InferenceResponse, TokenProbability,
+    TokenizationRequest, TokenizationResponse, TokenEmbedding
+)
 
 router = APIRouter(prefix="/v1", tags=["inference"])
 
@@ -95,3 +98,52 @@ async def generate_text(request: InferenceRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
+@router.post("/tokenize", response_model=TokenizationResponse)
+async def tokenize_text(request: TokenizationRequest):
+    # check if model is loaded before processing
+    if not model_manager.is_loaded(request.language):
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    model = model_manager.get_model(request.language)
+    
+    try:
+        # tokenize input text
+        tokens = model.to_tokens(request.text)
+        token_ids = tokens[0].tolist()  # [seq_len]
+        
+        # get token strings
+        token_strings = [model.to_string(token_id) for token_id in token_ids]
+        
+        # extract embeddings by running the model and capturing token embeddings
+        with torch.no_grad():
+            # run model with cache to get embeddings from the embed hook
+            logits, cache = model.run_with_cache(
+                tokens,
+                names_filter=lambda name: name == "blocks.0.hook_resid_pre"
+            )
+            
+            # get the input embeddings (before any layer processing)
+            # the embed hook captures embeddings after token embedding + position embedding
+            resid_pre = cache["blocks.0.hook_resid_pre"]  # [batch, seq_len, d_model]
+            embeddings = resid_pre[0].cpu().numpy()  # [seq_len, d_model]
+        
+        # build token embedding objects
+        token_embeddings = [
+            TokenEmbedding(
+                token=token_str,
+                token_id=token_id,
+                embedding=embedding.tolist()
+            )
+            for token_str, token_id, embedding in zip(token_strings, token_ids, embeddings)
+        ]
+        
+        return TokenizationResponse(
+            input_text=request.text,
+            num_tokens=len(token_strings),
+            embedding_dim=embeddings.shape[1],
+            token_embeddings=token_embeddings
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Tokenization failed: {str(e)}")

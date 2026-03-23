@@ -1,42 +1,120 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import FlowArrow from "./FlowArrow"
 
 export default function QKVScreen({
   stepIndex,
   setStepIndex,
-  inputText
+  inputText,
+  layer,
+  setLayer
 }:{
   stepIndex:number
   setStepIndex:(n:number)=>void
   inputText:string
+  layer:number
+  setLayer:(n:number)=>void
 }){
 
-const tokens =
-  inputText.trim().length > 0
-    ? inputText.split(/\s+/)
-    : []
+  const [tokens, setTokens] = useState<string[]>([])
+  const [selectedToken, setSelectedToken] = useState(0)
+  const [Q, setQ] = useState<number[]>([])
+  const [K, setK] = useState<number[]>([])
+  const [V, setV] = useState<number[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-const [selectedToken,setSelectedToken] = useState(0)
+  // Tokenize the input text
+  useEffect(() => {
+    if (inputText.trim().length === 0) {
+      setTokens([])
+      setError(null)
+      return
+    }
 
-/* deterministic vector generator */
-function generateVector(token:string, offset:number){
+    const tokenize = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: inputText,
+            language: "en",
+          }),
+        })
 
-  let seed = 0
-  for(let i=0;i<token.length;i++){
-    seed += token.charCodeAt(i)
-  }
+        if (!response.ok) {
+          throw new Error(`Tokenization failed: ${response.statusText}`)
+        }
 
-  return Array.from({length:5},(_,i)=>{
-    const val = Math.sin(seed*(i+1+offset))*0.9
-    return parseFloat(val.toFixed(2))
-  })
-}
+        const data = await response.json()
+        // Filter out special tokens
+        const filtered = data.token_embeddings.filter((te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/))
+        setTokens(filtered.map((te: any) => te.token))
+        setSelectedToken(0)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error")
+        setTokens([])
+      } finally {
+        setLoading(false)
+      }
+    }
 
-const Q = tokens.length ? generateVector(tokens[selectedToken],1) : []
-const K = tokens.length ? generateVector(tokens[selectedToken],2) : []
-const V = tokens.length ? generateVector(tokens[selectedToken],3) : []
+    tokenize()
+  }, [inputText])
+
+  // Fetch QKV vectors for selected token and layer
+  useEffect(() => {
+    if (tokens.length === 0 || !inputText.trim()) {
+      setQ([])
+      setK([])
+      setV([])
+      return
+    }
+
+    const fetchQKV = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/v1/qkv", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: inputText,
+            layer: layer - 1,  // Convert from 1-12 to 0-11
+            head: null,
+            token_positions: [selectedToken],
+            language: "en",
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`QKV extraction failed: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        if (data.qkv_vectors && data.qkv_vectors.length > 0) {
+          const vectors = data.qkv_vectors[0]
+          // Get first 5 values and round to 2 decimals
+          setQ(vectors.query.slice(0, 4).map((v: number) => parseFloat(v.toFixed(2))))
+          setK(vectors.key.slice(0, 4).map((v: number) => parseFloat(v.toFixed(2))))
+          setV(vectors.value.slice(0, 4).map((v: number) => parseFloat(v.toFixed(2))))
+        }
+      } catch (err) {
+        console.error("QKV fetch error:", err)
+        setQ([])
+        setK([])
+        setV([])
+      }
+    }
+
+    fetchQKV()
+  }, [inputText, selectedToken, layer])
 
 const SmallVector = ({data,color}:{data:number[],color:string}) => (
 <div className="flex gap-2 mt-2">
@@ -61,23 +139,39 @@ return (
 CLICK A TOKEN TO SEE HOW ITS EMBEDDING PRODUCES Q, K, V
 </div>
 
-<div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+{loading && (
+  <div className="text-zinc-500 text-sm">
+    Loading...
+  </div>
+)}
 
-{tokens.map((t,i)=>(
-<button
-key={i}
-onClick={()=>setSelectedToken(i)}
-className={`min-w-[110px] px-4 py-2 rounded-lg border ${
-selectedToken === i
-? "bg-purple-600 border-purple-600"
-: "border-[#2a2a2e]"
-}`}
->
-{t}
-</button>
-))}
+{error && (
+  <div className="text-red-500 text-sm">
+    Error: {error}
+  </div>
+)}
 
-</div>
+{!loading && !error && tokens.length > 0 && (
+  <>
+    <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+
+      {tokens.map((t, i) => (
+        <button
+          key={i}
+          onClick={() => setSelectedToken(i)}
+          className={`min-w-[110px] px-4 py-2 rounded-lg border ${
+            selectedToken === i
+              ? "bg-purple-600 border-purple-600"
+              : "border-[#2a2a2e]"
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+
+    </div>
+  </>
+)}
 
 <FlowArrow />
 

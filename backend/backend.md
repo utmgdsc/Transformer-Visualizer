@@ -93,6 +93,68 @@ response:
 }
 ```
 
+### tokenize text and get embeddings
+
+```text
+POST /v1/tokenize
+```
+
+request body:
+
+```json
+{
+  "text": "The quick brown fox",
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The quick brown fox",
+  "num_tokens": 4,
+  "embedding_dim": 768,
+  "token_embeddings": [
+    {
+      "token": "The",
+      "token_id": 464,
+      "embedding": [0.123, -0.456, 0.789, ...]
+    },
+    {
+      "token": " quick",
+      "token_id": 2068,
+      "embedding": [0.234, -0.567, 0.890, ...]
+    },
+    {
+      "token": " brown",
+      "token_id": 2812,
+      "embedding": [0.345, -0.678, 0.901, ...]
+    },
+    {
+      "token": " fox",
+      "token_id": 6419,
+      "embedding": [0.456, -0.789, 0.123, ...]
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+- `text` (required): input text to tokenize
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
+**Returns:**
+
+- `input_text`: the original input text
+- `num_tokens`: total number of tokens
+- `embedding_dim`: dimension of each embedding vector
+- `token_embeddings`: list of token objects containing:
+  - `token`: the token string representation
+  - `token_id`: the numeric token ID
+  - `embedding`: the embedding vector for this token (before any layer processing)
+
 ### extract attention patterns
 
 ```text

@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import FlowArrow from "./FlowArrow"
 
 export default function TokenIDScreen({
@@ -10,20 +13,55 @@ export default function TokenIDScreen({
   inputText: string
 }) {
 
-  // Tokenize input
-  const tokens =
-    inputText.trim().length > 0
-      ? inputText.split(/\s+/)
-      : []
+  const [tokens, setTokens] = useState<string[]>([])
+  const [tokenIDs, setTokenIDs] = useState<number[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Fake vocabulary lookup (deterministic hash for demo)
-  const tokenIDs = tokens.map((token) => {
-    let hash = 0
-    for (let i = 0; i < token.length; i++) {
-      hash = token.charCodeAt(i) + ((hash << 5) - hash)
+  // Call API to tokenize input text and get token IDs
+  useEffect(() => {
+    if (inputText.trim().length === 0) {
+      setTokens([])
+      setTokenIDs([])
+      setError(null)
+      return
     }
-    return Math.abs(hash % 50000) + 10000
-  })
+
+    const tokenize = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: inputText,
+            language: "en",
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Tokenization failed: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        // Filter out special tokens
+        const filtered = data.token_embeddings.filter((te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/))
+        setTokens(filtered.map((te: any) => te.token))
+        setTokenIDs(filtered.map((te: any) => te.token_id))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error")
+        setTokens([])
+        setTokenIDs([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    tokenize()
+  }, [inputText])
 
   return (
 
@@ -35,19 +73,33 @@ export default function TokenIDScreen({
           EACH TOKEN IS GIVEN A UNIQUE ID THAT CORRESPONDS TO A ROW IN THE EMBEDDING MATRIX
         </div>
 
-        <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+        {loading && (
+          <div className="text-zinc-500 text-sm">
+            Tokenizing...
+          </div>
+        )}
 
-          {tokens.map((token, i) => (
-            <div
-              key={i}
-              className="min-w-[120px] px-5 py-3 border border-[#2a2a2e] rounded-lg flex flex-col items-center"
-            >
-              <div className="text-zinc-300">{token}</div>
-              <div className="text-lg font-semibold">{tokenIDs[i]}</div>
-            </div>
-          ))}
+        {error && (
+          <div className="text-red-500 text-sm">
+            Error: {error}
+          </div>
+        )}
 
-        </div>
+        {!loading && !error && (
+          <div className="flex flex-wrap justify-center gap-4 max-w-3xl">
+
+            {tokens.map((token, i) => (
+              <div
+                key={i}
+                className="min-w-[120px] px-5 py-3 border border-[#2a2a2e] rounded-lg flex flex-col items-center"
+              >
+                <div className="text-zinc-300">{token}</div>
+                <div className="text-lg font-semibold">{tokenIDs[i]}</div>
+              </div>
+            ))}
+
+          </div>
+        )}
 
 
         <div className="flex flex-col items-center gap-4">
