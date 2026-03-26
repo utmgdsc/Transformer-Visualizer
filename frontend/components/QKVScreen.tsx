@@ -31,10 +31,9 @@ export default function QKVScreen({
   const [qkvVisible, setQkvVisible] = useState(0)
 
   const [loadingQKV, setLoadingQKV] = useState(true)
-
-
   const [finished, setFinished] = useState(false)
 
+  // ---------------- FETCH EMBEDDINGS ----------------
   useEffect(() => {
     if (!inputText.trim()) return
 
@@ -58,6 +57,7 @@ export default function QKVScreen({
     run()
   },[inputText])
 
+  // ---------------- FETCH QKV ----------------
   useEffect(() => {
     if (!tokens.length) return
 
@@ -80,9 +80,9 @@ export default function QKVScreen({
       const vec = data.qkv_vectors?.[0]
 
       if (vec) {
-        setQ(vec.query)
-        setK(vec.key)
-        setV(vec.value)
+        setQ(vec.query.slice(0, 64))
+        setK(vec.key.slice(0, 64))
+        setV(vec.value.slice(0, 64))
       }
 
       setLoadingQKV(false)
@@ -91,6 +91,7 @@ export default function QKVScreen({
     run()
   },[selectedToken, layer, inputText, tokens])
 
+  // ---------------- FLOW ANIMATION ----------------
   useEffect(() => {
     if (!embedding.length || !Q.length) return
 
@@ -108,7 +109,6 @@ export default function QKVScreen({
       if (i >= 768) {
         clearInterval(interval)
 
-        // weights flow next
         let w = 0
         const wInterval = setInterval(() => {
           w++
@@ -117,14 +117,15 @@ export default function QKVScreen({
           if (w >= 4) {
             clearInterval(wInterval)
 
-            // qkv flow
             let qv = 0
             const qInterval = setInterval(() => {
-              qv += 32
+              qv += 4
               setQkvVisible(qv)
 
-              if (qv >= 768) clearInterval(qInterval) 
-              setFinished(true)
+              if (qv >= 64) {
+                clearInterval(qInterval)
+                setFinished(true)
+              }
             }, 20)
           }
         }, 120)
@@ -134,44 +135,11 @@ export default function QKVScreen({
     return () => clearInterval(interval)
   }, [embedding, Q])
 
-  const Heatmap = ({data,color}:{data:number[],color:string}) => {
-    const rows = 16
-    const cols = 48
-
-    return (
-      <div className="grid grid-cols-48 gap-[2px]">
-        {data.slice(0, rows*cols).map((v,i)=>{
-          const intensity = Math.min(Math.abs(v),1)
-          const visible = i < qkvVisible
-          const selected = i===lookupDim
-
-          return (
-            <div
-              key={i}
-              onClick={()=>setLookupDim(i)}
-              className="w-[6px] h-[6px] cursor-pointer transition-all duration-300"
-              style={{
-                backgroundColor: visible
-                  ? `${color}${intensity})`
-                  : "#1c1c1f",
-                opacity: visible ? 1 : 0.1,
-                transform: selected ? "scale(1.8)" : "scale(1)",
-                boxShadow: selected ? "0 0 6px white" : "none"
-              }}
-            />
-          )
-        })}
-      </div>
-    )
-  }
-
+  // ---------------- EMBEDDING ----------------
   const EmbeddingMap = () => {
-    const rows = 16
-    const cols = 48
-
     return (
       <div className="grid grid-cols-48 gap-[2px]">
-        {embedding.slice(0, rows*cols).map((v,i)=>{
+        {embedding.slice(0, 768).map((v,i)=>{
           const intensity = Math.min(Math.abs(v),1)
           const visible = i < visibleCount
           const selected = i===lookupDim
@@ -196,6 +164,36 @@ export default function QKVScreen({
     )
   }
 
+  // ---------------- QKV HEATMAP (8x8 BLOCK) ----------------
+  const Heatmap = ({data,color}:{data:number[],color:string}) => {
+    return (
+      <div className="grid grid-cols-8 gap-[4px] justify-center">
+        {data.map((v,i)=>{
+          const intensity = Math.min(Math.abs(v),1)
+          const visible = i < qkvVisible
+          const selected = i===lookupDim
+
+          return (
+            <div
+              key={i}
+              onClick={()=>setLookupDim(i)}
+              className="w-[12px] h-[12px] rounded-sm cursor-pointer transition-all duration-300"
+              style={{
+                backgroundColor: visible
+                  ? `${color}${intensity})`
+                  : "#1c1c1f",
+                opacity: visible ? 1 : 0.15,
+                transform: selected ? "scale(1.6)" : "scale(1)",
+                boxShadow: selected ? "0 0 8px white" : "none"
+              }}
+            />
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ---------------- WEIGHTS ----------------
   const WeightBlocks = ({color}:{color:string}) => {
     const values = [0.2,0.6,0.4,0.8]
 
@@ -218,6 +216,7 @@ export default function QKVScreen({
     )
   }
 
+  // ---------------- LOOKUP ----------------
   const lookupQ = lookupDim!=null ? Q[lookupDim] : null
   const lookupK = lookupDim!=null ? K[lookupDim] : null
   const lookupV = lookupDim!=null ? V[lookupDim] : null
@@ -259,7 +258,6 @@ export default function QKVScreen({
           <div className="text-zinc-500 text-sm">Projection Weights</div>
 
           <div className="flex gap-8">
-
             <div className="flex flex-col items-center gap-2">
               <span className="text-xs text-blue-400">W_Q</span>
               <WeightBlocks color="rgba(59,130,246," />
@@ -274,7 +272,6 @@ export default function QKVScreen({
               <span className="text-xs text-green-400">W_V</span>
               <WeightBlocks color="rgba(34,197,94," />
             </div>
-
           </div>
         </div>
 
@@ -287,20 +284,26 @@ export default function QKVScreen({
 
         {/* QKV */}
         {!loadingQKV && (
-          <div className="flex flex-col gap-4 w-full max-w-3xl">
+          <div className="flex gap-12 items-start justify-center">
 
             <div>
-              <div className="text-xs text-zinc-400">Query (Q)</div>
+              <div className="text-xs text-zinc-400 mb-2 text-center">
+                Query (Q) — 64 dims
+              </div>
               <Heatmap data={Q} color="rgba(59,130,246," />
             </div>
 
             <div>
-              <div className="text-xs text-zinc-400">Key (K)</div>
+              <div className="text-xs text-zinc-400 mb-2 text-center">
+                Key (K) — 64 dims
+              </div>
               <Heatmap data={K} color="rgba(239,68,68," />
             </div>
 
             <div>
-              <div className="text-xs text-zinc-400">Value (V)</div>
+              <div className="text-xs text-zinc-400 mb-2 text-center">
+                Value (V) — 64 dims
+              </div>
               <Heatmap data={V} color="rgba(34,197,94," />
             </div>
 
