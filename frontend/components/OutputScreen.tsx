@@ -11,6 +11,9 @@ export default function ProbabilitiesScreen({
   const [selectedToken, setSelectedToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [judgeResult, setJudgeResult] = useState<{score: number; conclusion: string; reason: string; passed: boolean} | null>(null)
+  const [judgeLoading, setJudgeLoading] = useState(false)
+  const [judgeError, setJudgeError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!inputText.trim()) return
@@ -21,6 +24,7 @@ export default function ProbabilitiesScreen({
   async function fetchPredictions(text: string) {
     setLoading(true)
     setError(null)
+    setJudgeResult(null)
     try {
       const res = await fetch("http://localhost:8000/v1/predict", {
         method: "POST",
@@ -40,6 +44,26 @@ export default function ProbabilitiesScreen({
 
   const displaySentence = inputText.trim()
   const activeToken = selectedToken ?? predictions[0]?.token ?? ""
+
+  async function fetchJudge() {
+    setJudgeLoading(true)
+    setJudgeError(null)
+    setJudgeResult(null)
+    try {
+      const res = await fetch("http://localhost:8000/v1/judge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input_text: inputText, generated_text: activeToken.trim() })
+      })
+      if (!res.ok) throw new Error(`Judge failed: ${res.status}`)
+      const data = await res.json()
+      setJudgeResult(data)
+    } catch (err) {
+      setJudgeError(err instanceof Error ? err.message : "Judge failed")
+    } finally {
+      setJudgeLoading(false)
+    }
+  }
 
   return (
     <div className="flex w-full gap-10">
@@ -132,6 +156,43 @@ export default function ProbabilitiesScreen({
                   </button>
                 )
               })}
+            </div>
+            
+            {/* Hallucination Analysis */}
+            <div className="w-full max-w-md mt-6 flex flex-col gap-3">
+              <div className="text-sm text-zinc-500 mb-2">Hallucination Analysis</div>
+
+              <button
+                onClick={fetchJudge}
+                disabled={judgeLoading || !activeToken}
+                className="px-4 py-2 rounded-lg border border-[#2a2a2e] text-sm text-zinc-300 hover:border-purple-500 hover:text-purple-300 transition disabled:opacity-50"
+              >
+                {judgeLoading ? "Analyzing..." : "Analyze for Hallucination"}
+              </button>
+
+              {judgeError && (
+                <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                  {judgeError}
+                </div>
+              )}
+
+              {judgeResult && (
+                <div className="flex flex-col gap-2 p-4 rounded-lg border border-[#2a2a2e] bg-[#111114]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400">Risk:</span>
+                    <span className={`text-sm font-medium ${
+                      judgeResult.conclusion === "low" ? "text-green-400" :
+                      judgeResult.conclusion === "medium" ? "text-yellow-400" :
+                      "text-red-400"
+                    }`}>
+                      {judgeResult.conclusion.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    {judgeResult.reason}
+                  </p>
+                </div>
+              )}
             </div>
           </>
         )}
