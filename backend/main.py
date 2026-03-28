@@ -7,6 +7,7 @@ from models.model_loader import model_manager, LANGUAGE_MODELS
 from routes.inference import router as inference_router
 from routes.attention import router as attention_router
 from routes.ablation import router as ablation_router
+from routes.llmjudge import router as llmjudge_router
 from routes.qkv import router as qkv_router
 from routes.mlp import router as mlp_router
 
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(inference_router)
 app.include_router(attention_router)
 app.include_router(ablation_router)
+app.include_router(llmjudge_router)
 app.include_router(qkv_router)
 app.include_router(mlp_router)
 

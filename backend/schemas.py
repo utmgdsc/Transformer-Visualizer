@@ -87,6 +87,19 @@ class AblationResponse(BaseModel):
     baseline_text: str  # generation without ablation for comparison
 
 
+class LLMJudgeRequest(BaseModel):
+    # input information
+    input_text: str
+    generated_text: str
+
+
+class LLMJudgeResponse(BaseModel):
+    # hallucination metric info
+    score: float  # 0-1, higher = more correct / less hallucination
+    conclusion: str  # "low", "medium", "high"
+    reason: str  # explanation from judge model
+    passed: bool  # True if the score meets the acceptance threshold
+      
 class QKVVectors(BaseModel):
     # QKV vectors for a specific token position
     token_position: int
