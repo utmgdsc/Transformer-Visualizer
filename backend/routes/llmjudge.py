@@ -25,7 +25,7 @@ async def judge_output(request: LLMJudgeRequest):
     try:
         metric = GEval(
             name="Hallucination",
-            criteria="Given an input text and a predicted next word, determine if the predicted word could plausibly continue the input as part of a longer phrase. Common words like 'the', 'a', 'of', 'in' are almost always valid continuations. For example, 'the' after 'the largest country in' scores 1.0 because it continues as 'the world'. Only score low if the word is clearly factually wrong or grammatically impossible.",
+            criteria="Given an input text and a predicted next word, determine if the predicted word could plausibly continue the input as part of a longer phrase. Common words like 'the', 'a', 'of', 'in' are almost always valid continuations and should score 1.0 without further comment. For content words (nouns, verbs, adjectives), evaluate factual correctness and plausibility. Only score low if the word is clearly factually wrong or grammatically impossible. Keep reasoning concise and focused on whether the word fits, not on what it is.",
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
             model=judge_model, async_mode=False
         )
