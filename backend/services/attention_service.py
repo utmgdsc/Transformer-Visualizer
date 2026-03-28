@@ -161,10 +161,10 @@ class AttentionExtractor:
     def extract_all_heads_value_and_out(
         self,
         text: str,
+        head: int,
         layer: Optional[int] = None,
-        head: Optional[int] = None,
     ) -> Dict:
-        """Extract head-out data for all layers/heads, with optional filters.
+        """Extract head-out data for a specific head across all (or one) layer(s).
 
         Returns:
             {
@@ -179,6 +179,10 @@ class AttentionExtractor:
 
         tokens = self.model.to_tokens(text)
         token_strings = self._tokens_to_strings(tokens)
+
+        n_heads = self.model.cfg.n_heads
+        if head < 0 or head >= n_heads:
+            raise ValueError(f"Invalid head index {head}. Model has {n_heads} heads.")
 
         target_layers = [layer] if layer is not None else list(range(self.model.cfg.n_layers))
 
@@ -220,34 +224,29 @@ class AttentionExtractor:
                 z = z[0]
 
             n_heads = pattern.shape[0]
-            target_heads = [head] if head is not None else list(range(n_heads))
 
             W_O = self.model.blocks[layer_idx].attn.W_O  # [head, d_head, d_model]
             b_O = getattr(self.model.blocks[layer_idx].attn, "b_O", None)
 
-            for head_idx in target_heads:
-                if head_idx < 0 or head_idx >= n_heads:
-                    continue
+            attention_matrix = pattern[head].detach().cpu().numpy().tolist()
+            value_vectors = v[:, head, :].detach().cpu().numpy().tolist()
 
-                attention_matrix = pattern[head_idx].detach().cpu().numpy().tolist()
-                value_vectors = v[:, head_idx, :].detach().cpu().numpy().tolist()
+            z_head = z[:, head, :]
+            out = z_head @ W_O[head]
+            if b_O is not None:
+                out = out + (b_O / n_heads)
+            out_vectors = out.detach().cpu().numpy().tolist()
 
-                z_head = z[:, head_idx, :]
-                out = z_head @ W_O[head_idx]
-                if b_O is not None:
-                    out = out + (b_O / n_heads)
-                out_vectors = out.detach().cpu().numpy().tolist()
-
-                patterns_out.append(
-                    {
-                        "layer": layer_idx,
-                        "head": head_idx,
-                        "attention_matrix": attention_matrix,
-                        "value_vectors": value_vectors,
-                        "out_vectors": out_vectors,
-                        "out_vector_kind": "reconstructed_from_z",
-                    }
-                )
+            patterns_out.append(
+                {
+                    "layer": layer_idx,
+                    "head": head,
+                    "attention_matrix": attention_matrix,
+                    "value_vectors": value_vectors,
+                    "out_vectors": out_vectors,
+                    "out_vector_kind": "reconstructed_from_z",
+                }
+            )
 
         return {"tokens": token_strings, "patterns": patterns_out}
     
@@ -336,9 +335,9 @@ def extract_attention(
 def extract_attention_head_out_all(
     model: HookedTransformer,
     text: str,
+    head: int,
     layer: Optional[int] = None,
-    head: Optional[int] = None,
 ) -> Dict:
-    """Public interface for extracting head-out data for all layers/heads."""
+    """Public interface for extracting head-out data for a specific head across layers."""
     extractor = AttentionExtractor(model)
-    return extractor.extract_all_heads_value_and_out(text=text, layer=layer, head=head)
+    return extractor.extract_all_heads_value_and_out(text=text, head=head, layer=layer)

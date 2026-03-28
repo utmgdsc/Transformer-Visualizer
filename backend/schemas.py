@@ -58,14 +58,11 @@ class AttentionResponse(BaseModel):
 
 
 class AttentionHeadOutRequest(BaseModel):
-    """Request head-out data, optionally filtered by layer/head.
-
-    If `layer`/`head` are omitted, returns all layers/heads (like `/v1/attention`).
-    """
+    """Request head-out data for a specific head, with an optional layer filter."""
 
     text: str
     layer: Optional[int] = None
-    head: Optional[int] = None
+    head: int
     language: str = "en"
 
 

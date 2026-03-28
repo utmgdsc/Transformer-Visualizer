@@ -150,7 +150,7 @@ request body:
 {
   "text": "The quick brown fox",
   "layer": 0,
-  "head": null,
+  "head": 0,
   "language": "en"
 }
 ```
@@ -171,19 +171,21 @@ response:
         [0.1, 0.2, 0.6, 0.1],
         [0.05, 0.1, 0.2, 0.65]
       ],
-      "value_vectors": [[0.01, 0.02]],
-      "out_vectors": [[0.01, 0.02]],
+      "value_vectors": [[...], ...],
+      "out_vectors": [[...], ...],
       "out_vector_kind": "reconstructed_from_z"
     }
   ]
 }
 ```
 
+**Note:** `value_vectors` has shape `[seq_len, d_head]` and `out_vectors` has shape `[seq_len, d_model]`. Vectors are abbreviated above for clarity.
+
 **Parameters:**
 
 - `text` (required): input text to analyze
+- `head` (required): specific attention head index to extract
 - `layer` (optional): specific layer index to extract (None = all layers)
-- `head` (optional): specific attention head to extract (None = all heads)
 - `language` (optional, default: "en"): language model to use ("en" or "fr")
 
 ### ablation experiment

@@ -69,23 +69,20 @@ async def get_attention_patterns(request: AttentionRequest):
 
 @router.post("/attention/head-out", response_model=AttentionHeadOutResponse)
 async def get_attention_head_out(request: AttentionHeadOutRequest):
-    """Return "Attention x Value = Out" data, optionally filtered by layer/head.
-
-    Like `/v1/attention`, if you omit `layer` and `head` you'll get all layers/heads.
-    """
+    """Return "Attention x Value = Out" data for a specific head, optionally filtered by layer."""
 
     if not model_manager.is_loaded(request.language):
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     model = model_manager.get_model(request.language)
 
-    # validate indices early (if provided)
+    # validate indices early
     if request.layer is not None and (request.layer < 0 or request.layer >= model.cfg.n_layers):
         raise HTTPException(
             status_code=400,
             detail=f"Invalid layer. Must be between 0 and {model.cfg.n_layers - 1}",
         )
-    if request.head is not None and (request.head < 0 or request.head >= model.cfg.n_heads):
+    if request.head < 0 or request.head >= model.cfg.n_heads:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid head. Must be between 0 and {model.cfg.n_heads - 1}",
@@ -95,8 +92,8 @@ async def get_attention_head_out(request: AttentionHeadOutRequest):
         data = extract_attention_head_out_all(
             model=model,
             text=request.text,
-            layer=request.layer,
             head=request.head,
+            layer=request.layer,
         )
 
         patterns = [
