@@ -20,19 +20,18 @@ if not groq_key:
 
 judge_model = LiteLLMModel(model="groq/llama-3.3-70b-versatile",api_key=groq_key)
 
-metric = GEval(
-    name="Hallucination",
-    criteria="Given an input text and a predicted next word, determine if the predicted word is factually correct and makes sense as the next word. For example, if the input is 'the capital of france is' and the output is 'paris', that is correct and should score 1.0.",
-    evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
-    model=judge_model, async_mode=False
-)
-
 @router.post("/judge", response_model=LLMJudgeResponse)
 async def judge_output(request: LLMJudgeRequest):
     try:
+        metric = GEval(
+            name="Hallucination",
+            criteria="Given an input text and a predicted next word, determine if the predicted word is factually correct and makes sense as the next word. For example, if the input is 'the capital of france is' and the output is 'paris', that is correct and should score 1.0.",
+            evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
+            model=judge_model, async_mode=False
+        )
         test_case = LLMTestCase(
-        input=request.input_text,
-        actual_output=request.generated_text
+            input=request.input_text,
+            actual_output=request.generated_text
         )
         metric.measure(test_case)
 
