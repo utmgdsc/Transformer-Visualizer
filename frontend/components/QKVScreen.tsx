@@ -156,9 +156,9 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
         <div className={`text-3xl ${weightVisible >= 4 ? "opacity-100 text-purple-400" : "opacity-0"}`}>=</div>
         {!loadingQKV && (
           <div className="flex gap-12">
-            <Heatmap data={Q} color="rgba(59,130,246," label="Query (Q) — {headDim} dims"/>
-            <Heatmap data={K} color="rgba(239,68,68," label="Key (K) — {headDim} dims"/>
-            <Heatmap data={V} color="rgba(34,197,94," label="Value (V) — {headDim} dims"/>
+            <Heatmap data={Q} color="rgba(59,130,246," label={`Query (Q) — ${headDim ?? "?"} dims`}/>
+            <Heatmap data={K} color="rgba(239,68,68," label={`Key (K) — ${headDim ?? "?"} dims`}/>
+            <Heatmap data={V} color="rgba(34,197,94," label={`Value (V) — ${headDim ?? "?"} dims`}/>
           </div>
         )}
         <div className="flex gap-3 items-center">
