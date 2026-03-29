@@ -1,0 +1,104 @@
+{
+  "tokenization": {
+    "inputLabel": "输入文本",
+    "tokensLabel": "词元（{count}）",
+    "loading": "正在分词...",
+    "error": "错误：{error}",
+    "title": "分词",
+    "description": "您的文本被分割成词元，即模型读取的基本单位。通常每个词对应一个词元，但标点符号和罕见词可能会被进一步分割。",
+    "next": "下一步 →"
+  },
+
+  "tokenID": {
+  "description": "每个词元被赋予一个唯一的ID，对应嵌入矩阵中的一行",
+  "loading": "正在分词...",
+  "error": "错误：{error}",
+  "matrixLabel": "这些ID用于索引嵌入矩阵",
+  "matrixSlice": "嵌入矩阵（10万 × 768）— 显示一小部分",
+  "matrixRow": "第 {id} 行",
+  "matrixDims": "...768维",
+  "title": "词元ID",
+  "description2": "每个词元对应词汇表中的一个整数索引（现代大语言模型约有10万个词元）。模型从不直接处理原始文本，只处理这些数字。",
+  "example": "\"{token}\" → {id}",
+  "embeddingNote": "这些ID用于选择嵌入矩阵中对应的行。",
+  "next": "下一步 →"
+    },
+
+  "embedding": {
+  "instruction": "点击词元以查看其嵌入向量",
+  "loading": "正在获取嵌入向量...",
+  "error": "错误：{error}",
+  "vectorLabel": "\"{token}\" 的向量 — 768维，显示10维",
+  "dim": "维度 {i}",
+  "title": "嵌入向量",
+  "description": "一个学习得到的矩阵将每个ID转换为一个密集向量。相似的词最终会有相似的向量。",
+  "positive": "正维度",
+  "negative": "负维度",
+  "next": "下一步 →"
+    },
+
+    "qkv": {
+  "instruction": "点击词元查看其嵌入向量如何生成 Q、K、V",
+  "loading": "加载中...",
+  "error": "错误：{error}",
+  "title": "嵌入向量 → QKV 投影",
+  "description": "注意力层将每个嵌入向量转换为三种不同的表示。",
+  "note": "同一个嵌入向量通过三个独立的学习权重矩阵投影到三个不同的空间。",
+  "next": "下一步 →"
+},
+
+"selfAttention": {
+  "instruction": "点击词元查看它关注哪些其他词元",
+  "head": "注意力头 {head} / 12",
+  "loading": "正在获取注意力模式...",
+  "error": "获取注意力数据失败，后端是否正在运行？",
+  "attentionWeights": "\"{token}\" 的注意力权重（第 {head} 个头）",
+  "title": "自注意力",
+  "description1": "所选词元的 Query 向量通过点积与每个词元的 Key 向量进行比较，所得分数经过 softmax 归一化后得到注意力权重。",
+  "description2": "注意力权重表示在处理所选词元时每个词元的重要程度。权重越高，模型对该词元的关注度越强。",
+  "liveLabel": "实时 — 第 {layer} 层，第 {head} 个头",
+  "topToken": "最高权重词元：",
+  "maxWeight": "最大权重：",
+  "next": "下一步 →"
+},
+
+"attentionOut": {
+  "instruction": "应用注意力机制生成输出（显示 4 / 64 维）",
+  "loadingTokens": "正在分词...",
+  "loadingQKV": "获取中...",
+  "token": "词元：",
+  "attentionRow": "注意力（该词元对应的行）",
+  "valueVector": "值向量",
+  "outputVector": "注意力输出向量",
+  "static": "（静态）",
+  "title": "注意力输出",
+  "description1": "每个词元通过注意力矩阵中的一行关注之前的词元。",
+  "description2": "这些权重对值向量进行缩放，然后求和形成输出。",
+  "dimensions": "显示 64 维中的前 4 维",
+  "next": "下一步 →"
+},
+
+"mlp": {
+  "instruction": "通过 MLP + 残差连接精炼表示",
+  "attentionOutput": "注意力输出",
+  "mlpTransformation": "MLP 变换",
+  "residual": "残差（加回输入）",
+  "finalVector": "最终向量",
+  "title": "MLP + 残差",
+  "description1": "MLP 通过学习更复杂的模式和关系来变换注意力输出。",
+  "description2": "残差连接将原始输入加回，以保留重要信息并稳定学习过程。",
+  "dimensions": "显示 64 维中的前 4 维",
+  "next": "下一步 →",
+  "loading": "加载中..."
+},
+
+"output": {
+  "instruction": "预测下一个词",
+  "loading": "预测中...",
+  "error": "预测失败",
+  "continuations": "可能的续写",
+  "title": "下一个词元预测",
+  "description1": "模型使用最后一个词元的最终表示来预测下一个词。",
+  "description2": "点击任意词查看该预测下句子的续写方式。"
+}
+}

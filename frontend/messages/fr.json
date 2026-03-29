@@ -1,0 +1,103 @@
+{
+  "tokenization": {
+    "inputLabel": "TEXTE D'ENTRÉE",
+    "tokensLabel": "TOKENS ({count})",
+    "loading": "Tokenisation en cours...",
+    "error": "Erreur : {error}",
+    "title": "Tokenisation",
+    "description": "Votre texte est découpé en tokens, les unités de base que le modèle lit. Généralement un mot par token, mais la ponctuation et les mots rares peuvent être divisés.",
+    "next": "Suivant →"
+  },
+
+  "tokenID": {
+  "description": "CHAQUE TOKEN REÇOIT UN IDENTIFIANT UNIQUE QUI CORRESPOND À UNE LIGNE DANS LA MATRICE D'EMBEDDING",
+  "loading": "Tokenisation en cours...",
+  "error": "Erreur : {error}",
+  "matrixLabel": "Ces identifiants indexent la matrice d'embedding",
+  "matrixSlice": "Matrice d'embedding (100k × 768) — aperçu d'une petite partie",
+  "matrixRow": "ligne {id}",
+  "matrixDims": "...768 dims",
+  "title": "Identifiants de tokens",
+  "description2": "Chaque token correspond à un index entier dans le vocabulaire (~100k tokens pour les LLMs modernes). Le modèle ne voit jamais le texte brut, seulement ces nombres.",
+  "example": "\"{token}\" → {id}",
+  "embeddingNote": "Ces identifiants sont utilisés pour sélectionner une ligne dans la matrice d'embedding.",
+  "next": "Suivant →"
+    },
+
+    "embedding": {
+  "instruction": "CLIQUEZ SUR UN TOKEN POUR INSPECTER SON VECTEUR D'EMBEDDING",
+  "loading": "Récupération des embeddings...",
+  "error": "Erreur : {error}",
+  "vectorLabel": "VECTEUR POUR \"{token}\" — 768 DIMS, AFFICHAGE DE 10",
+  "dim": "dim {i}",
+  "title": "Embeddings",
+  "description": "Une matrice apprise convertit chaque ID en un vecteur dense. Les mots similaires finissent avec des vecteurs similaires.",
+  "positive": "Dimensions positives",
+  "negative": "Dimensions négatives",
+  "next": "Suivant →"
+    },
+
+"qkv": {
+  "instruction": "CLIQUEZ SUR UN TOKEN POUR VOIR COMMENT SON EMBEDDING PRODUIT Q, K, V",
+  "loading": "Chargement...",
+  "error": "Erreur : {error}",
+  "title": "Embedding → Projection QKV",
+  "description": "La couche d'attention convertit chaque vecteur d'embedding en trois représentations différentes.",
+  "note": "Le même vecteur d'embedding est projeté dans trois espaces différents à l'aide de matrices de poids apprises séparément.",
+  "next": "Suivant →"
+},
+
+"selfAttention": {
+  "instruction": "CLIQUEZ SUR UN TOKEN POUR VOIR QUELS AUTRES TOKENS IL PREND EN COMPTE",
+  "head": "Tête {head} / 12",
+  "loading": "Récupération des patterns d'attention...",
+  "error": "Échec de la récupération des données d'attention. Le backend est-il en cours d'exécution ?",
+  "attentionWeights": "Poids d'attention pour \"{token}\" (Tête {head})",
+  "title": "Auto-Attention",
+  "description1": "Le vecteur Query du token sélectionné est comparé aux vecteurs Key de chaque token via un produit scalaire. Les scores obtenus sont normalisés avec softmax pour produire les poids d'attention.",
+  "description2": "Les poids d'attention indiquent l'importance de chaque token lors du traitement du token sélectionné. Des poids plus élevés signifient que le modèle se concentre davantage sur ce token.",
+  "liveLabel": "EN DIRECT — couche {layer}, tête {head}",
+  "topToken": "Token principal :",
+  "maxWeight": "Poids maximum :",
+  "next": "Suivant →"
+},
+
+"attentionOut": {
+  "instruction": "APPLIQUER L'ATTENTION POUR PRODUIRE LA SORTIE (AFFICHAGE DE 4 / 64 DIMENSIONS)",
+  "loadingTokens": "Tokenisation en cours...",
+  "loadingQKV": "récupération...",
+  "token": "Token :",
+  "attentionRow": "Attention (ligne pour ce token)",
+  "valueVector": "Vecteur de valeur",
+  "outputVector": "Vecteur de sortie d'attention",
+  "static": "(statique)",
+  "title": "Sortie d'attention",
+  "description1": "Chaque token prête attention aux tokens précédents en utilisant une ligne de la matrice d'attention.",
+  "description2": "Ces poids mettent à l'échelle les vecteurs de valeur qui sont ensuite sommés pour former la sortie.",
+  "dimensions": "Affichage des 4 premières dimensions sur 64",
+  "next": "Suivant →"
+},
+"mlp": {
+  "instruction": "AFFINER LA REPRÉSENTATION AVEC MLP + RÉSIDUEL",
+  "attentionOutput": "Sortie d'attention",
+  "mlpTransformation": "Transformation MLP",
+  "residual": "Résiduel (rajouter l'entrée)",
+  "finalVector": "Vecteur final",
+  "title": "MLP + Résiduel",
+  "description1": "Le MLP transforme la sortie d'attention en apprenant des patterns et des relations plus complexes.",
+  "description2": "Une connexion résiduelle rajoute ensuite l'entrée originale pour préserver les informations importantes et stabiliser l'apprentissage.",
+  "dimensions": "Affichage des 4 premières dimensions sur 64",
+  "next": "Suivant →",
+  "loading": "Chargement..."
+},
+
+"output": {
+  "instruction": "PRÉDIRE LE PROCHAIN MOT",
+  "loading": "Prédiction en cours...",
+  "error": "Échec de la prédiction",
+  "continuations": "Continuations possibles",
+  "title": "Prédiction du prochain token",
+  "description1": "Le modèle utilise la représentation finale du dernier token pour prédire quel mot vient ensuite.",
+  "description2": "Cliquez sur un mot pour voir comment la phrase continuerait avec cette prédiction."
+}
+}

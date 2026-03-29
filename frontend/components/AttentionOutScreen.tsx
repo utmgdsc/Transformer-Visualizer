@@ -1,6 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations, useLocale } from "next-intl"
+
+const localeToLanguage: Record<string, string> = {
+  en: "en",
+  fr: "fr",
+  zh: "zh",
+}
 
 function AttentionMatrix({
   tokens,
@@ -25,7 +32,6 @@ function AttentionMatrix({
           </div>
         ))}
       </div>
-
       {Array.from({ length: size }).map((_, i) => (
         <div key={i} className="flex gap-1">
           {Array.from({ length: size }).map((_, j) => {
@@ -35,11 +41,7 @@ function AttentionMatrix({
               <div
                 key={j}
                 className={`w-4 h-4 rounded-sm ${
-                  val === null
-                    ? "bg-[#1a1a1f]"
-                    : isSelectedRow
-                    ? "bg-purple-500"
-                    : "bg-zinc-600"
+                  val === null ? "bg-[#1a1a1f]" : isSelectedRow ? "bg-purple-500" : "bg-zinc-600"
                 }`}
                 style={{ opacity: val === null ? 0.2 : 0.3 + (val ?? 0) * 0.7 }}
               />
@@ -63,7 +65,6 @@ function VectorSquares({ data, color }: { data: number[]; color: string }) {
   )
 }
 
-// Static output vector seeded from token string
 function generateVector(seedStr: string, length = 4) {
   let seed = 0
   for (let i = 0; i < seedStr.length; i++) seed += seedStr.charCodeAt(i)
@@ -81,6 +82,10 @@ export default function AttentionOutScreen({
   inputText: string
   layer: number
 }) {
+  const t = useTranslations("attentionOut")
+  const locale = useLocale()
+  const language = localeToLanguage[locale] ?? "en"
+
   const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState(0)
   const [valueVec, setValueVec] = useState<number[]>([])
@@ -88,7 +93,6 @@ export default function AttentionOutScreen({
   const [loadingQKV, setLoadingQKV] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // ── Tokenize ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!inputText.trim()) { setTokens([]); return }
 
@@ -99,12 +103,10 @@ export default function AttentionOutScreen({
         const res = await fetch("http://localhost:8000/v1/tokenize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: inputText, language: "en" })
+          body: JSON.stringify({ text: inputText, language })
         })
         if (!res.ok) throw new Error(`Tokenize failed: ${res.status}`)
         const data = await res.json()
-
-        // Filter special tokens
         const filtered = data.token_embeddings.filter(
           (te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/)
         )
@@ -118,9 +120,8 @@ export default function AttentionOutScreen({
       }
     }
     run()
-  }, [inputText])
+  }, [inputText, language])
 
-  // ── Fetch value vector via QKV ────────────────────────────────────────────
   useEffect(() => {
     if (tokens.length === 0 || !inputText.trim()) { setValueVec([]); return }
 
@@ -135,12 +136,11 @@ export default function AttentionOutScreen({
             layer: layer - 1,
             head: null,
             token_positions: [selectedToken],
-            language: "en"
+            language
           })
         })
         if (!res.ok) throw new Error(`QKV failed: ${res.status}`)
         const data = await res.json()
-
         if (data.qkv_vectors?.[0]?.value) {
           setValueVec(
             data.qkv_vectors[0].value
@@ -156,9 +156,8 @@ export default function AttentionOutScreen({
       }
     }
     run()
-  }, [inputText, tokens, selectedToken, layer])
+  }, [inputText, tokens, selectedToken, layer, language])
 
-  // Static attention output — endpoint TBD
   const outVec = tokens[selectedToken]
     ? generateVector(tokens[selectedToken] + "_OUT")
     : []
@@ -169,27 +168,24 @@ export default function AttentionOutScreen({
       <div className="flex-1 flex flex-col items-center">
 
         <div className="text-zinc-400 text-base mb-8 tracking-wide">
-          APPLY ATTENTION TO PRODUCE OUTPUT (SHOWING 4 / 64 DIMENSIONS)
+          {t("instruction")}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">
             {error}
           </div>
         )}
 
-        {/* Loading tokens */}
         {loadingTokens && (
           <div className="text-zinc-500 text-sm animate-pulse mb-6">
-            Tokenizing...
+            {t("loadingTokens")}
           </div>
         )}
 
-        {/* Token selector */}
         {!loadingTokens && tokens.length > 0 && (
           <div className="flex gap-4 mb-12 flex-wrap justify-center">
-            {tokens.map((t, i) => (
+            {tokens.map((tok, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedToken(i)}
@@ -199,7 +195,7 @@ export default function AttentionOutScreen({
                     : "bg-[#111114] border-[#2a2a2e] text-zinc-300 hover:border-zinc-500"
                 }`}
               >
-                {t}
+                {tok}
               </button>
             ))}
           </div>
@@ -209,28 +205,22 @@ export default function AttentionOutScreen({
           <div className="flex flex-col items-center gap-10">
 
             <div className="text-base text-zinc-500">
-              Token:{" "}
-              <span className="text-purple-400 font-medium">
-                {tokens[selectedToken]}
-              </span>
+              {t("token")}{" "}
+              <span className="text-purple-400 font-medium">{tokens[selectedToken]}</span>
             </div>
 
-            {/* Attention matrix (static) */}
             <div className="flex flex-col items-center gap-3">
-              <div className="text-sm text-zinc-500">
-                Attention (row for this token)
-              </div>
+              <div className="text-sm text-zinc-500">{t("attentionRow")}</div>
               <AttentionMatrix tokens={tokens} selectedToken={selectedToken} />
             </div>
 
             <div className="text-zinc-500 text-2xl">×</div>
 
-            {/* Value vector (live) */}
             <div className="flex flex-col items-center gap-3">
               <div className="text-sm text-zinc-500 flex items-center gap-2">
-                Value Vector
+                {t("valueVector")}
                 {loadingQKV && (
-                  <span className="text-zinc-600 text-xs animate-pulse">fetching...</span>
+                  <span className="text-zinc-600 text-xs animate-pulse">{t("loadingQKV")}</span>
                 )}
               </div>
               {valueVec.length > 0 ? (
@@ -242,11 +232,10 @@ export default function AttentionOutScreen({
 
             <div className="text-zinc-500 text-xl">↓</div>
 
-            {/* Attention output (static — endpoint TBD) */}
             <div className="flex flex-col items-center gap-3">
               <div className="text-sm text-zinc-500 flex items-center gap-2">
-                Attention Output Vector
-                <span className="text-zinc-600 text-xs">(static)</span>
+                {t("outputVector")}
+                <span className="text-zinc-600 text-xs">{t("static")}</span>
               </div>
               <VectorSquares data={outVec} color="bg-purple-400/30 text-purple-300" />
             </div>
@@ -259,18 +248,11 @@ export default function AttentionOutScreen({
       {/* Right panel */}
       <div className="w-[320px] bg-[#111114] border border-[#2a2a2e] rounded-2xl p-6 flex flex-col">
         <div>
-          <div className="text-lg font-semibold mb-4">Attention Output</div>
-
-          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
-            Each token attends to previous tokens using a row of the attention matrix.
-          </p>
-
-          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
-            These weights scale the value vectors and are summed to form the output.
-          </p>
-
+          <div className="text-lg font-semibold mb-4">{t("title")}</div>
+          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">{t("description1")}</p>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">{t("description2")}</p>
           <div className="bg-[#1a1a1f] rounded-lg px-4 py-3 text-sm text-zinc-300 mb-3">
-            Showing first 4 of 64 dimensions
+            {t("dimensions")}
           </div>
         </div>
 
@@ -279,7 +261,7 @@ export default function AttentionOutScreen({
             onClick={() => setStepIndex(stepIndex + 1)}
             className="px-5 py-2 rounded-lg text-sm border border-[#2a2a2e] text-zinc-300 hover:bg-[#1c1c22] transition"
           >
-            Next →
+            {t("next")}
           </button>
         </div>
       </div>

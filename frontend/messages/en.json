@@ -1,0 +1,105 @@
+{
+  "tokenization": {
+    "inputLabel": "INPUT TEXT",
+    "tokensLabel": "TOKENS ({count})",
+    "loading": "Tokenizing...",
+    "error": "Error: {error}",
+    "title": "Tokenization",
+    "description": "Your text is split into tokens, the basic units the model reads. Usually one word per token, but punctuation and rare words can split further.",
+    "next": "Next →"
+  },
+
+  "tokenID": {
+  "description": "EACH TOKEN IS GIVEN A UNIQUE ID THAT CORRESPONDS TO A ROW IN THE EMBEDDING MATRIX",
+  "loading": "Tokenizing...",
+  "error": "Error: {error}",
+  "matrixLabel": "These IDs index into the embedding matrix",
+  "matrixSlice": "Embedding Matrix (100k × 768) — showing a tiny slice",
+  "matrixRow": "row {id}",
+  "matrixDims": "...768 dims",
+  "title": "Token IDs",
+  "description2": "Each token maps to an integer index in the vocabulary (~100k tokens for modern LLMs). The model never sees raw text, only these numbers.",
+  "example": "\"{token}\" → {id}",
+  "embeddingNote": "These IDs are used to select a row in the embedding matrix.",
+  "next": "Next →"
+    },
+
+"embedding": {
+  "instruction": "CLICK A TOKEN TO INSPECT ITS EMBEDDING VECTOR",
+  "loading": "Fetching embeddings...",
+  "error": "Error: {error}",
+  "vectorLabel": "VECTOR FOR \"{token}\" — 768 DIMS, SHOWING 10",
+  "dim": "dim {i}",
+  "title": "Embeddings",
+  "description": "A learned matrix converts each ID into a dense vector. Similar words end up with similar vectors.",
+  "positive": "Positive dimensions",
+  "negative": "Negative dimensions",
+  "next": "Next →"
+    },
+
+"qkv": {
+  "instruction": "CLICK A TOKEN TO SEE HOW ITS EMBEDDING PRODUCES Q, K, V",
+  "loading": "Loading...",
+  "error": "Error: {error}",
+  "title": "Embedding → QKV Projection",
+  "description": "The attention layer converts each embedding vector into three different representations.",
+  "note": "The same embedding vector is projected into three different spaces using separate learned weight matrices.",
+  "next": "Next →"
+},
+
+"selfAttention": {
+  "instruction": "CLICK A TOKEN TO SEE WHICH OTHER TOKENS IT PAYS ATTENTION TO",
+  "head": "Head {head} / 12",
+  "loading": "Fetching attention patterns...",
+  "error": "Failed to fetch attention data. Is the backend running?",
+  "attentionWeights": "Attention weights for \"{token}\" (Head {head})",
+  "title": "Self-Attention",
+  "description1": "The Query vector for the selected token is compared with the Key vectors of every token using a dot product. The resulting scores are normalized with softmax to produce attention weights.",
+  "description2": "Attention weights show how important each token is when processing the selected token. Higher weights mean the model focuses more on that token.",
+  "liveLabel": "LIVE — layer {layer}, head {head}",
+  "topToken": "Top token:",
+  "maxWeight": "Max weight:",
+  "next": "Next →"
+},
+
+"attentionOut": {
+  "instruction": "APPLY ATTENTION TO PRODUCE OUTPUT (SHOWING 4 / 64 DIMENSIONS)",
+  "loadingTokens": "Tokenizing...",
+  "loadingQKV": "fetching...",
+  "token": "Token:",
+  "attentionRow": "Attention (row for this token)",
+  "valueVector": "Value Vector",
+  "outputVector": "Attention Output Vector",
+  "static": "(static)",
+  "title": "Attention Output",
+  "description1": "Each token attends to previous tokens using a row of the attention matrix.",
+  "description2": "These weights scale the value vectors and are summed to form the output.",
+  "dimensions": "Showing first 4 of 64 dimensions",
+  "next": "Next →"
+}, 
+
+"mlp": {
+  "instruction": "REFINE REPRESENTATION WITH MLP + RESIDUAL",
+  "attentionOutput": "Attention Output",
+  "mlpTransformation": "MLP Transformation",
+  "residual": "Residual (add input back)",
+  "finalVector": "Final Vector",
+  "title": "MLP + Residual",
+  "description1": "The MLP transforms the attention output by learning more complex patterns and relationships.",
+  "description2": "A residual connection then adds the original input back to preserve important information and stabilize learning.",
+  "dimensions": "Showing first 4 of 64 dimensions",
+  "next": "Next →",
+  "loading": "Loading..."
+},
+
+"output": {
+  "instruction": "PREDICT NEXT WORD",
+  "loading": "Predicting...",
+  "error": "Prediction failed",
+  "continuations": "Possible continuations",
+  "title": "Next Token Prediction",
+  "description1": "The model uses the final representation of the last token to predict what word comes next.",
+  "description2": "Click any word to see how the sentence would continue with that prediction."
+}
+}
+

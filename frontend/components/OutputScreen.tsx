@@ -1,12 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useTranslations, useLocale } from "next-intl"
+
+const localeToLanguage: Record<string, string> = {
+  en: "en",
+  fr: "fr",
+  zh: "zh",
+}
 
 export default function ProbabilitiesScreen({
   inputText
 }: {
   inputText: string
 }) {
+  const t = useTranslations("output")
+  const locale = useLocale()
+  const language = localeToLanguage[locale] ?? "en"
+
   const [predictions, setPredictions] = useState<{ token: string; probability: number }[]>([])
   const [selectedToken, setSelectedToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -16,7 +27,7 @@ export default function ProbabilitiesScreen({
     if (!inputText.trim()) return
     setSelectedToken(null)
     fetchPredictions(inputText)
-  }, [inputText])
+  }, [inputText, language])
 
   async function fetchPredictions(text: string) {
     setLoading(true)
@@ -25,13 +36,13 @@ export default function ProbabilitiesScreen({
       const res = await fetch("http://localhost:8000/v1/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, temperature: 1.0, top_k: 5 })
+        body: JSON.stringify({ text, temperature: 1.0, top_k: 5, language })
       })
       if (!res.ok) throw new Error(`Predict failed: ${res.status}`)
       const data = await res.json()
       setPredictions(data.next_token_probabilities)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Prediction failed")
+      setError(err instanceof Error ? err.message : t("error"))
       setPredictions([])
     } finally {
       setLoading(false)
@@ -47,10 +58,9 @@ export default function ProbabilitiesScreen({
       <div className="flex-1 flex flex-col items-center">
 
         <div className="text-zinc-400 text-base mb-8 tracking-wide">
-          PREDICT NEXT WORD
+          {t("instruction")}
         </div>
 
-        {/* Sentence with predicted word highlighted */}
         <div className="text-lg text-zinc-300 mb-10 text-center">
           {displaySentence}{" "}
           {activeToken && (
@@ -58,17 +68,15 @@ export default function ProbabilitiesScreen({
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">
             {error}
           </div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div className="text-zinc-500 text-sm animate-pulse mb-6">
-            Predicting...
+            {t("loading")}
           </div>
         )}
 
@@ -89,7 +97,6 @@ export default function ProbabilitiesScreen({
                     }`}>
                       {item.token.trim()}
                     </div>
-
                     <div className="flex-1 h-2 bg-[#1c1c22] rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
@@ -98,7 +105,6 @@ export default function ProbabilitiesScreen({
                         style={{ width: `${item.probability * 100}%` }}
                       />
                     </div>
-
                     <div className="text-xs text-zinc-400 w-12 text-right">
                       {(item.probability * 100).toFixed(1)}%
                     </div>
@@ -110,7 +116,7 @@ export default function ProbabilitiesScreen({
             {/* Possible continuations */}
             <div className="w-full max-w-md flex flex-col gap-3">
               <div className="text-sm text-zinc-500 mb-2">
-                Possible continuations
+                {t("continuations")}
               </div>
               {predictions.map((item, i) => {
                 const isActive = (selectedToken ?? predictions[0].token) === item.token
@@ -141,16 +147,9 @@ export default function ProbabilitiesScreen({
       {/* Right panel */}
       <div className="w-[320px] bg-[#111114] border border-[#2a2a2e] rounded-2xl p-6 flex flex-col">
         <div>
-          <div className="text-lg font-semibold mb-4">Next Token Prediction</div>
-
-          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">
-            The model uses the final representation of the last token to
-            predict what word comes next.
-          </p>
-
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            Click any word to see how the sentence would continue with that prediction.
-          </p>
+          <div className="text-lg font-semibold mb-4">{t("title")}</div>
+          <p className="text-sm text-zinc-400 mb-4 leading-relaxed">{t("description1")}</p>
+          <p className="text-sm text-zinc-400 leading-relaxed">{t("description2")}</p>
         </div>
       </div>
 

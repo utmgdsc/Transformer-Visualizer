@@ -10,6 +10,8 @@ import SelfAttentionScreen from "@/components/SelfAttentionScreen"
 import AttentionOutScreen from "@/components/AttentionOutScreen"
 import MLPScreen from "@/components/MLPResidual"
 import ProbabilitiesScreen from "@/components/OutputScreen"
+import { useRouter, usePathname } from "@/i18n/navigation"
+
 export default function Home() {
 
   const steps = [
@@ -28,6 +30,9 @@ export default function Home() {
   const [language, setLanguage] = useState("English")
 
   const [inputText, setInputText] = useState("The transformer model processes")
+
+  const router = useRouter()
+  const pathname = usePathname()
 
   return (
 
@@ -49,14 +54,28 @@ export default function Home() {
           ▶ Run
         </button>
 
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          className="bg-[#1c1c1f] border border-[#2a2a2e] rounded-lg px-3 py-2 text-sm outline-none"
-        >
-          <option>English</option>
-          <option>French</option>
-        </select>
+<select
+  value={language}
+  onChange={(e) => {
+    const newLang = e.target.value
+    setLanguage(newLang)
+
+    const localeMap: Record<string, string> = {
+      English: "en",
+      French: "fr",
+      Chinese: "zh"
+    }
+
+    const newLocale = localeMap[newLang]
+
+    router.replace(pathname, { locale: newLocale })
+  }}
+  className="bg-[#1c1c1f] border border-[#2a2a2e] rounded-lg px-3 py-2 text-sm outline-none"
+>
+  <option>English</option>
+  <option>French</option>
+  <option>Chinese</option>
+</select>
 
         <div className="flex items-center gap-2 ml-2">
 
