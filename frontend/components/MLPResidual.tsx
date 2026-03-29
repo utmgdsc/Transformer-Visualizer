@@ -189,13 +189,14 @@ function MLPFlow({
 }
 /* ─── MAIN ──────────────────────────────────────────────────── */
 export default function MLPScreen({
-  stepIndex, setStepIndex, inputText, layer = 1, head = 0,
+  stepIndex, setStepIndex, inputText, layer = 1, head = 0, language = "en"
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
   layer?: number
   head?: number
+  language?: string
 }) {
   const tokens = inputText.trim().length > 0 ? inputText.split(/\s+/) : []
   const [selectedToken, setSelectedToken] = useState(0)
@@ -215,7 +216,7 @@ export default function MLPScreen({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: inputText, layer: layer - 1,
-        token_positions: [selectedToken], language: "en",
+        token_positions: [selectedToken], language: language,
       }),
     })
       .then(r => r.json())

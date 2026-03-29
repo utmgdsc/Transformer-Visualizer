@@ -6,11 +6,15 @@ import { useState, useEffect } from "react"
 export default function Embedding({
   stepIndex,
   setStepIndex,
-  inputText
+  inputText,
+  dModel,
+  language
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
+  dModel: number
+  language: string
 }) {
 
   const [tokens, setTokens] = useState<string[]>([])
@@ -41,7 +45,7 @@ export default function Embedding({
         const response = await fetch("http://localhost:8000/v1/tokenize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: inputText, language: "en" })
+          body: JSON.stringify({ text: inputText, language: language })
         })
 
         const data = await response.json()
@@ -170,7 +174,7 @@ export default function Embedding({
 
         {tokens.length > 0 && !loading && (
           <div className="text-sm text-zinc-400 text-center">
-            VECTOR FOR "{tokens[selectedToken]?.toUpperCase()}" — 768 DIMS
+            VECTOR FOR "{tokens[selectedToken]?.toUpperCase()}" — {dModel} DIMS
           </div>
         )}
 
@@ -178,8 +182,8 @@ export default function Embedding({
           <input
             type="number"
             min={0}
-            max={767}
-            placeholder="dim (0-767)"
+            max={dModel - 1} 
+            placeholder={`dim (0-${dModel - 1})`}
             className="bg-[#1c1c1f] px-3 py-1 rounded text-sm w-32"
             onChange={(e) => setLookupDim(Number(e.target.value))}
           />

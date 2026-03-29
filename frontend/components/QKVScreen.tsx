@@ -7,13 +7,19 @@ export default function QKVScreen({
   setStepIndex,
   inputText,
   layer,
-  setLayer
+  setLayer,
+  nHeads,
+  dModel,
+  language
 }:{
   stepIndex:number
   setStepIndex:(n:number)=>void
   inputText:string
   layer:number
   setLayer:(n:number)=>void
+  nHeads: number
+  dModel: number
+  language: string
 }){
 
   const [tokens, setTokens] = useState<string[]>([])
@@ -34,6 +40,7 @@ export default function QKVScreen({
   const [finished, setFinished] = useState(false)
 
   const isLayerSwitch = useRef(false)
+  const headDim = Math.floor(dModel / nHeads)
 
   useEffect(() => {
     if (!inputText.trim()) return
@@ -42,7 +49,7 @@ export default function QKVScreen({
       const res = await fetch("http://localhost:8000/v1/tokenize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText, language: "en" })
+        body: JSON.stringify({ text: inputText, language: language })
       })
 
       const data = await res.json()
@@ -73,7 +80,7 @@ export default function QKVScreen({
           layer: layer - 1,
           head: null,
           token_positions: [selectedToken],
-          language: "en"
+          language: language
         })
       })
 
@@ -81,9 +88,9 @@ export default function QKVScreen({
       const vec = data.qkv_vectors?.[0]
 
       if (vec) {
-        setQ(vec.query.slice(0,64))
-        setK(vec.key.slice(0,64))
-        setV(vec.value.slice(0,64))
+        setQ(vec.query.slice(0, headDim))
+        setK(vec.key.slice(0, headDim))
+        setV(vec.value.slice(0, headDim))
       }
 
       setLoadingQKV(false)
@@ -107,7 +114,7 @@ export default function QKVScreen({
           layer: layer - 1,
           head: null,
           token_positions: [selectedToken],
-          language: "en"
+          language: language
         })
       })
 
@@ -323,9 +330,9 @@ export default function QKVScreen({
 
         {!loadingQKV && (
           <div className="flex gap-12">
-            <Heatmap data={Q} color="rgba(59,130,246," label="Query (Q) — 64 dims"/>
-            <Heatmap data={K} color="rgba(239,68,68," label="Key (K) — 64 dims"/>
-            <Heatmap data={V} color="rgba(34,197,94," label="Value (V) — 64 dims"/>
+            <Heatmap data={Q} color="rgba(59,130,246," label="Query (Q) — {headDim} dims"/>
+            <Heatmap data={K} color="rgba(239,68,68," label="Key (K) — {headDim} dims"/>
+            <Heatmap data={V} color="rgba(34,197,94," label="Value (V) — {headDim} dims"/>
           </div>
         )}
 
@@ -400,9 +407,9 @@ export default function QKVScreen({
         {/* heads stat */}
         <div className="border-t border-[#1e1e24] pt-4 flex flex-col gap-1">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">Attention Heads</div>
-          <div className="font-mono text-2xl text-zinc-300 font-semibold">12</div>
+          <div className="font-mono text-2xl text-zinc-300 font-semibold">{nHeads}</div>
           <div className="text-[11px] text-zinc-600 leading-relaxed">
-            Each head sees 64 of the 768 embedding dims. Parallel specialisation gives the model richer representational power than a single head could.
+            Each head sees {Math.floor(dModel / nHeads)} of the {dModel} embedding dims. Parallel specialisation gives the model richer representational power than a single head could.
           </div>
         </div>
 

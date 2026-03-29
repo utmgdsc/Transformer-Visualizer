@@ -7,12 +7,14 @@ export default function TokenizationScreen({
   stepIndex,
   setStepIndex,
   inputText,
-  runSignal
+  runSignal,
+  language
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
   runSignal: number
+  language: string
 }) {
 
   const [tokens, setTokens] = useState<string[]>([])
@@ -37,7 +39,7 @@ export default function TokenizationScreen({
         const res = await fetch("http://localhost:8000/v1/tokenize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: inputText, language: "en" })
+          body: JSON.stringify({ text: inputText, language: language })
         })
 
         const data = await res.json()

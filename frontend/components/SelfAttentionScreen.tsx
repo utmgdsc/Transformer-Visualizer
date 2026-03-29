@@ -9,13 +9,17 @@ export default function SelfAttentionScreen({
   layer,
   head,
   setHead,
+  nHeads,
+  language
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
   layer: number
   head: number
-  setHead: (h: number) => void
+  setHead: (h: number | ((h: number) => number)) => void
+  nHeads: number
+  language: string
 }) {
   const [tokens, setTokens] = useState<string[]>([])
   const [attentionMatrix, setAttentionMatrix] = useState<number[][]>([])
@@ -39,7 +43,7 @@ export default function SelfAttentionScreen({
       const res = await fetch("http://localhost:8000/v1/attention", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText, layer: layer - 1, head, language: "en" })
+        body: JSON.stringify({ text: inputText, layer: layer - 1, head, language: language })
       })
       if (!res.ok) throw new Error(`Server error: ${res.status}`)
       const data = await res.json()
@@ -74,12 +78,12 @@ export default function SelfAttentionScreen({
         </p>
         <div className="flex items-center gap-4">
           <button
-            onClick={() => setHead(Math.max(0, head - 1))}
+            onClick={() => setHead(h => Math.max(0, h - 1))}
             className="px-3 py-1 rounded bg-[#1c1c1f] hover:bg-[#2a2a2e]"
           >◀</button>
-          <div className="text-zinc-300 text-sm min-w-[80px] text-center">Head {head + 1} / 12</div>
+          <div className="text-zinc-300 text-sm min-w-[80px] text-center">Head {head + 1} / {nHeads}</div>
           <button
-            onClick={() => setHead(Math.min(11, head + 1))}
+            onClick={() => setHead(h => Math.min(nHeads - 1, h + 1))}
             className="px-3 py-1 rounded bg-[#1c1c1f] hover:bg-[#2a2a2e]"
           >▶</button>
         </div>

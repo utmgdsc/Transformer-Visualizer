@@ -217,13 +217,15 @@ function VectorHeatmap({ data, color, lookupDim, setLookupDim, visible }: {
 }
 
 export default function AttentionOutScreen({
-  stepIndex, setStepIndex, inputText, layer, head,
+  stepIndex, setStepIndex, inputText, layer, head, language, nHeads
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
   layer: number
   head: number
+  language: string
+  nHeads: number
 }) {
   const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState(0)
@@ -249,7 +251,7 @@ export default function AttentionOutScreen({
         head: head,
         include_bias: true,
         include_attention_matrix: false,
-        language: "en",
+        language: language,
       }),
     })
       .then(r => r.json())
@@ -291,7 +293,7 @@ export default function AttentionOutScreen({
         head: head,
         include_bias: true,
         include_attention_matrix: false,
-        language: "en",
+        language: language,
       }),
     })
       .then(r => r.json())
@@ -465,14 +467,14 @@ export default function AttentionOutScreen({
         <div className="border border-[#1e1e24] rounded-xl p-3 flex flex-col gap-2">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">Multi-Head Attention</div>
           <div className="text-[11px] text-zinc-500 leading-relaxed">
-            GPT-2 runs <span className="text-zinc-300">12 attention heads</span> in parallel. Currently showing head {head + 1}.
+            GPT-2 runs <span className="text-zinc-300">{nHeads} attention heads</span> in parallel. Currently showing head {head + 1}.
           </div>
         </div>
 
         <div className="border border-[#1e1e24] rounded-xl p-3 flex flex-col gap-2">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">Concatenation</div>
           <div className="text-[11px] text-zinc-500 leading-relaxed">
-            The 12 head outputs are concatenated then projected back down through a linear layer which merges all perspectives into one unified representation.
+            The {nHeads} head outputs are concatenated then projected back down through a linear layer which merges all perspectives into one unified representation.
           </div>
         </div>
 

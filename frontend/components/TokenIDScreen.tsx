@@ -6,11 +6,17 @@ import FlowArrow from "./FlowArrow"
 export default function TokenIDScreen({
   stepIndex,
   setStepIndex,
-  inputText
+  inputText,
+  dModel,
+  vocabSize,
+  language
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
   inputText: string
+  dModel: number
+  vocabSize: number
+  language: string
 }) {
 
   const [tokens, setTokens] = useState<string[]>([])
@@ -36,7 +42,7 @@ export default function TokenIDScreen({
         const res = await fetch("http://localhost:8000/v1/tokenize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: inputText, language: "en" })
+          body: JSON.stringify({ text: inputText, language: language })
         })
 
         const data = await res.json()
@@ -161,7 +167,7 @@ export default function TokenIDScreen({
                   </div>
 
                   <div className="text-xs text-zinc-500 ml-2">
-                    ...768 dims
+                    ...{dModel} dims
                   </div>
                 </div>
               )
@@ -203,10 +209,10 @@ export default function TokenIDScreen({
             GPT-2 stores all token embeddings in a large matrix of size:
           </div>
           <div className="font-mono text-xs text-zinc-400 mt-1">
-            (50,257 × 768)
+            ({vocabSize.toLocaleString()} × {dModel})
           </div>
           <div className="text-xs text-zinc-500 mt-2">
-            That’s ~39 million learned parameters.
+            That's ~{Math.round(vocabSize * dModel / 1e6)} million learned parameters.
           </div>
         </div>
 
