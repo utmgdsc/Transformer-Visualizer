@@ -200,6 +200,56 @@ response:
 - `head` (optional): specific attention head to extract (None = all heads)
 - `language` (optional, default: "en"): language model to use ("en" or "fr")
 
+### extract attention head out (Attention × Value = Out)
+
+```text
+POST /v1/attention/head-out
+```
+
+request body:
+
+```json
+{
+  "text": "The quick brown fox",
+  "layer": 0,
+  "head": 0,
+  "include_bias": true,
+  "include_attention_matrix": false,
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The quick brown fox",
+  "tokens": ["The", " quick", " brown", " fox"],
+  "patterns": [
+    {
+      "layer": 0,
+      "head": 0,
+      "attention_matrix": null,
+      "value_vectors": [[...], ...],
+      "out_vectors": [[...], ...],
+      "out_vector_kind": "reconstructed_from_z",
+      "includes_bias": true
+    }
+  ]
+}
+```
+
+**Note:** `value_vectors` has shape `[seq_len, d_head]` and `out_vectors` has shape `[seq_len, d_model]`. Vectors are abbreviated above for clarity. `attention_matrix` is `null` by default; set `include_attention_matrix: true` to receive it with shape `[seq_len, seq_len]`.
+
+**Parameters:**
+
+- `text` (required): input text to analyze
+- `head` (required): specific attention head index to extract
+- `layer` (optional): specific layer index to extract (None = all layers)
+- `include_bias` (optional, default: `true`): when `true`, distributes `b_O / n_heads` into each head's `out_vectors` so they sum to the full layer attention output; set to `false` to get pure per-head contributions without any bias term
+- `include_attention_matrix` (optional, default: `false`): when `true`, includes the `[seq_len, seq_len]` attention matrix in each pattern; omitted by default to reduce response size
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
 ### ablation experiment
 
 ```text
