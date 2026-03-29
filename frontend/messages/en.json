@@ -91,7 +91,12 @@
     "maxWeight": "max weight",
     "whyMask": "Why mask?",
     "whyMaskDesc": "GPT-2 is a causal language model — the mask sets future positions to −∞ before softmax, collapsing them to 0% attention.",
-    "next": "Next →"
+    "next": "Next →",
+    "bars": "Bars",
+    "matrix": "Matrix",
+    "matrixDesc": "Full attention matrix — row = query token, col = key token (Head {head})",
+    "attended": "attended",
+    "masked": "masked (future)"
   },
   "attentionOut": {
     "instruction": "APPLY ATTENTION TO PRODUCE OUTPUT",

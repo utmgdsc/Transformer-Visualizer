@@ -91,7 +91,12 @@
     "maxWeight": "最大权重",
     "whyMask": "为什么要掩码？",
     "whyMaskDesc": "GPT-2 是一个因果语言模型——掩码在 softmax 之前将未来位置设为 −∞，使其注意力概率崩溃为0%。",
-    "next": "下一步 →"
+    "next": "下一步 →",
+    "bars": "条形图",
+    "matrix": "矩阵",
+    "matrixDesc": "完整注意力矩阵 — 行 = 查询词元，列 = 键词元（第 {head} 个头）",
+    "attended": "已关注",
+    "masked": "已掩码（未来）"
   },
   "attentionOut": {
     "instruction": "应用注意力机制生成输出",
