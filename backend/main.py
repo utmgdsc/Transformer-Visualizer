@@ -9,6 +9,7 @@ from routes.attention import router as attention_router
 from routes.ablation import router as ablation_router
 from routes.qkv import router as qkv_router
 from routes.mlp import router as mlp_router
+from routes.modelinfo import router as model_info_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +38,7 @@ app.include_router(attention_router)
 app.include_router(ablation_router)
 app.include_router(qkv_router)
 app.include_router(mlp_router)
+app.include_router(model_info_router)
 
 @app.get("/health")
 async def health_check():

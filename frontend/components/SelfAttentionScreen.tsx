@@ -6,7 +6,7 @@ import FlowArrow from "./FlowArrow"
 const localeToLanguage: Record<string, string> = { en: "en", fr: "fr", zh: "zh" }
 
 export default function SelfAttentionScreen({
-  stepIndex, setStepIndex, inputText, layer, head, setHead,
+  stepIndex, setStepIndex, inputText, layer, head, setHead, nHeads, modelName
 }: {
   stepIndex: number
   setStepIndex: (n: number) => void
@@ -14,6 +14,8 @@ export default function SelfAttentionScreen({
   layer: number
   head: number
   setHead: (h: number) => void
+  nHeads: number
+  modelName: string
 }) {
   const t = useTranslations("selfAttention")
   const locale = useLocale()
@@ -68,8 +70,8 @@ export default function SelfAttentionScreen({
           {/* head switcher */}
           <div className="flex items-center gap-4">
             <button onClick={() => setHead(Math.max(0, head - 1))} className="px-3 py-1 rounded bg-[#1c1c1f] hover:bg-[#2a2a2e]">◀</button>
-            <div className="text-zinc-300 text-sm min-w-[80px] text-center">{t("head", { head: head + 1 })}</div>
-            <button onClick={() => setHead(Math.min(11, head + 1))} className="px-3 py-1 rounded bg-[#1c1c1f] hover:bg-[#2a2a2e]">▶</button>
+            <div className="text-zinc-300 text-sm min-w-[80px] text-center">  {t("head", { head: head + 1, nHeads: nHeads })}</div>
+            <button onClick={() => setHead(Math.min(nHeads - 1, head + 1))} className="px-3 py-1 rounded bg-[#1c1c1f] hover:bg-[#2a2a2e]">▶</button>
           </div>
 
           {/* view toggle */}
@@ -228,7 +230,7 @@ export default function SelfAttentionScreen({
         )}
         <div className="border-t border-[#1e1e24] pt-4 flex flex-col gap-1">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("whyMask")}</div>
-          <div className="text-[11px] text-zinc-600 leading-relaxed">{t("whyMaskDesc")}</div>
+          <div className="text-[11px] text-zinc-600 leading-relaxed">{t("whyMaskDesc", {modelName})}</div>
         </div>
         <div className="mt-auto flex justify-end">
           <button onClick={() => setStepIndex(stepIndex + 1)}

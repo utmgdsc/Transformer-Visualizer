@@ -69,10 +69,12 @@ function GeluCurve({ highlightX }: { highlightX: number | null }) {
   )
 }
 
-function MLPFlow({ attnVec, mlpVec, geluVec, finalVec, hoverIdx, setHoverIdx, phase, labels }: {
+function MLPFlow({ attnVec, mlpVec, geluVec, finalVec, hoverIdx, setHoverIdx, phase, labels, nHeads, dModel }: {
   attnVec: number[]; mlpVec: number[]; geluVec: number[]; finalVec: number[];
   hoverIdx: number | null; setHoverIdx: (i: number | null) => void; phase: number;
-  labels: { step1: string; step2: string; step3: string; step4: string; residual: string }
+  labels: { step1: string; step2: string; step3: string; step4: string; residual: string };
+  nHeads: number;
+  dModel: number;
 }) {
   const hVal = hoverIdx !== null ? attnVec[hoverIdx] : null
   return (
@@ -84,7 +86,7 @@ function MLPFlow({ attnVec, mlpVec, geluVec, finalVec, hoverIdx, setHoverIdx, ph
       <div className="flex items-center gap-3 pl-11 transition-all duration-500" style={{ opacity: phase >= 2 ? 1 : 0 }}>
         <div className="flex flex-col items-center gap-1">
           <div className="h-5 w-px bg-zinc-700"/>
-          <div className="text-[10px] text-zinc-600">Linear (W₁) · 64 → 768</div>
+          <div className="text-[10px] text-zinc-600">Linear (W₁) · {Math.floor(dModel / nHeads)} → {dModel - 1}</div>
           <div className="h-5 w-px bg-zinc-700"/>
         </div>
         <div className="text-[10px] text-zinc-600 border border-zinc-800 rounded px-2 py-1 ml-2">expands here ↑</div>
@@ -121,8 +123,8 @@ function MLPFlow({ attnVec, mlpVec, geluVec, finalVec, hoverIdx, setHoverIdx, ph
   )
 }
 
-export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 1, head = 0 }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer?: number; head?: number
+export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 1, head = 0, nHeads, dModel }: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer?: number; head?: number, nHeads: number; dModel: number
 }) {
   const t = useTranslations("mlp")
   const locale = useLocale()
@@ -169,11 +171,11 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
   } : null
 
   const flowLabels = {
-    step1: "Attention Output  ·  64 dims",
-    step2: "After Linear Layer  ·  768 dims",
-    step3: "After GELU  ·  768 dims",
-    step4: "Final Vector  ·  64 dims",
-    residual: "add attention output back",
+    step1: t("flowStep1", { floor: Math.floor(dModel / nHeads) }),
+    step2: t("flowStep2", { dModel }),
+    step3: t("flowStep3", { dModel }),
+    step4: t("flowStep4", { floor: Math.floor(dModel / nHeads) }),
+    residual: t("flowResidual"),
   }
 
   return (
@@ -187,7 +189,7 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
           ))}
         </div>
         <div className="overflow-y-auto pr-2" style={{ maxHeight: "calc(100vh - 260px)" }}>
-          <MLPFlow attnVec={attnVec} mlpVec={mlpVec} geluVec={geluVec} finalVec={finalVec} hoverIdx={hoverIdx} setHoverIdx={setHoverIdx} phase={phase} labels={flowLabels}/>
+          <MLPFlow attnVec={attnVec} mlpVec={mlpVec} geluVec={geluVec} finalVec={finalVec} hoverIdx={hoverIdx} setHoverIdx={setHoverIdx} phase={phase} labels={flowLabels} nHeads={nHeads} dModel={dModel} />
         </div>
       </div>
 
@@ -200,14 +202,14 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
           {(["step1","step2","step3","step4"] as const).map((key, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full shrink-0 mt-0.5 opacity-80 ${["bg-purple-500","bg-blue-500","bg-emerald-400","bg-violet-400"][i]}`}/>
-              <span className="text-zinc-400 leading-relaxed">{t(key)}</span>
+              <span className="text-zinc-400 leading-relaxed">{t(key, { floor: Math.floor(dModel / nHeads), dModel})}</span>
             </div>
           ))}
         </div>
         <div className="border-t border-[#1e1e24] pt-4 flex flex-col gap-3">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("dimInspector")}</div>
-          <input type="number" min={0} max={767} placeholder="0 – 767" value={lookupDim ?? ""}
-            onChange={(e) => { const v = e.target.value === "" ? null : Math.min(767, Math.max(0, Number(e.target.value))); setLookupDim(v) }}
+          <input type="number" min={0} max={dModel - 1} placeholder={`0 – ${dModel - 1}`} value={lookupDim ?? ""}
+            onChange={(e) => { const v = e.target.value === "" ? null : Math.min(dModel - 1, Math.max(0, Number(e.target.value))); setLookupDim(v) }}
             className="bg-[#111114] border border-[#2a2a2e] text-zinc-300 px-3 py-1.5 rounded-lg w-full text-xs font-mono focus:outline-none focus:border-purple-500/50 transition placeholder-zinc-700"/>
           {inspectorValues ? (
             <div className="flex flex-col gap-2 font-mono text-xs">
@@ -225,7 +227,7 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
               )}
             </div>
           ) : (
-            <div className="text-[11px] text-zinc-700">{t("dimInspectorHint")}</div>
+            <div className="text-[11px] text-zinc-700">{t("dimInspectorHint", { dModelMinus: dModel - 1 })}</div>
           )}
         </div>
         <div className="mt-auto flex justify-end">

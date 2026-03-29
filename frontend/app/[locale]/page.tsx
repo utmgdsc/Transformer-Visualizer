@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import TokenizationScreen from "@/components/TokenizationScreen"
 import TokenIDScreen from "@/components/TokenIDScreen"
@@ -11,9 +11,27 @@ import AttentionOutScreen from "@/components/AttentionOutScreen"
 import MLPScreen from "@/components/MLPResidual"
 import ProbabilitiesScreen from "@/components/OutputScreen"
 import { useRouter, usePathname } from "@/i18n/navigation"
+import { useLocale } from "next-intl"
 
 import CalculatingProbScreen from "@/components/CalculatingProb"
 
+const localeToLanguage: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  zh: "Chinese",
+}
+
+const languageToLocale: Record<string, string> = {
+  English: "en",
+  French: "fr",
+  Chinese: "zh",
+}
+
+const localeToBackendLang: Record<string, string> = {
+  en: "en",
+  fr: "fr",
+  zh: "zh",
+}
 
 export default function Home() {
 
@@ -29,15 +47,45 @@ export default function Home() {
     "Output"
   ]
 
+  const locale = useLocale()
+
   const [stepIndex, setStepIndex] = useState(0)
   const [layer, setLayer] = useState(1)
   const [head, setHead] = useState(0)
-  const [language, setLanguage] = useState("English")
   const [inputText, setInputText] = useState("The transformer model processes")
+  const [runSignal, setRunSignal] = useState(0)
+  const [nLayers, setNLayers] = useState(12)
+  const [nHeads, setNHeads] = useState(12)
+  const [dModel, setDModel] = useState(768)
+  const [vocabSize, setVocabSize] = useState(50257)
+  const [modelName, setModelName] = useState("GPT-2")
 
   const router = useRouter()
   const pathname = usePathname()
-  const [runSignal, setRunSignal] = useState(0)
+
+  // Derive the display language from the current locale
+  const language = localeToLanguage[locale] ?? "English"
+  const backendLang = localeToBackendLang[locale] ?? "en"
+
+  // Fetch model info whenever locale changes
+  useEffect(() => {
+    fetch(`http://localhost:8000/v1/model-info?language=${backendLang}`)
+      .then(r => r.json())
+      .then(d => {
+        setNLayers(d.n_layers)
+        setNHeads(d.n_heads)
+        setDModel(d.d_model)
+        setVocabSize(d.n_vocab)
+        setModelName(d.model_name)
+        setLayer(1)
+      })
+      .catch(console.error)
+  }, [locale])
+
+  const handleLanguageChange = (newLanguage: string) => {
+    const newLocale = languageToLocale[newLanguage] ?? "en"
+    router.replace(pathname, { locale: newLocale })
+  }
 
   return (
     <main className="min-h-screen bg-[#0f0f10] text-white p-6 flex flex-col gap-6">
@@ -64,41 +112,27 @@ export default function Home() {
           ▶ Run
         </button>
 
-<select
-  value={language}
-  onChange={(e) => {
-    const newLang = e.target.value
-    setLanguage(newLang)
-
-    const localeMap: Record<string, string> = {
-      English: "en",
-      French: "fr",
-      Chinese: "zh"
-    }
-
-    const newLocale = localeMap[newLang]
-
-    router.replace(pathname, { locale: newLocale })
-  }}
-  className="bg-[#1c1c1f] border border-[#2a2a2e] rounded-lg px-3 py-2 text-sm outline-none"
->
-  <option>English</option>
-  <option>French</option>
-  <option>Chinese</option>
-</select>
+        <select
+          value={language}
+          onChange={(e) => handleLanguageChange(e.target.value)}
+          className="bg-[#1c1c1f] border border-[#2a2a2e] rounded-lg px-3 py-2 text-sm outline-none"
+        >
+          <option>English</option>
+          <option>French</option>
+          <option>Chinese</option>
+        </select>
 
         <div className="flex items-center gap-2 ml-2">
           <button
             onClick={() => setLayer(Math.max(1, layer - 1))}
             className="px-2 py-1 text-sm bg-[#1c1c1f] border border-[#2a2a2e] rounded hover:bg-[#2a2a2e]"
           >◀</button>
-          <div className="text-sm text-zinc-300 px-3">Layer {layer} / 12</div>
+          <div className="text-sm text-zinc-300 px-3">Layer {layer} / {nLayers}</div>
           <button
-            onClick={() => setLayer(Math.min(12, layer + 1))}
+            onClick={() => setLayer(Math.min(nLayers, layer + 1))}
             className="px-2 py-1 text-sm bg-[#1c1c1f] border border-[#2a2a2e] rounded hover:bg-[#2a2a2e]"
           >▶</button>
         </div>
-
       </div>
 
       <div className="grid grid-cols-[220px_1fr] gap-8">
@@ -127,14 +161,14 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col">
-          {stepIndex === 0 && <TokenizationScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} runSignal={runSignal} />}
-          {stepIndex === 1 && <TokenIDScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} />}
-          {stepIndex === 2 && <Embedding stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} />}
-          {stepIndex === 3 && <QKVScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} setLayer={setLayer} />}
-          {stepIndex === 4 && <SelfAttentionScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} head={head} setHead={setHead} />}
-          {stepIndex === 5 && <AttentionOutScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} head={head} />}
-          {stepIndex === 6 && <MLPScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} head={head}/>}
-          {stepIndex === 7 && <CalculatingProbScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} />}
+          {stepIndex === 0 && <TokenizationScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} runSignal={runSignal} vocabSize={vocabSize} modelName={modelName} />}
+          {stepIndex === 1 && <TokenIDScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} dModel={dModel} vocabSize={vocabSize} modelName={modelName} />}
+          {stepIndex === 2 && <Embedding stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} dModel={dModel} />}
+          {stepIndex === 3 && <QKVScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} setLayer={setLayer} nHeads={nHeads} dModel={dModel} />}
+          {stepIndex === 4 && <SelfAttentionScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} head={head} setHead={setHead} nHeads={nHeads} modelName={modelName} />}
+          {stepIndex === 5 && <AttentionOutScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} head={head} nHeads={nHeads} dModel={dModel} modelName={modelName} />}
+          {stepIndex === 6 && <MLPScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} layer={layer} head={head} nHeads={nHeads} dModel={dModel} />}
+          {stepIndex === 7 && <CalculatingProbScreen stepIndex={stepIndex} setStepIndex={setStepIndex} inputText={inputText} nHeads={nHeads} dModel={dModel} vocabSize={vocabSize} />}
           {stepIndex === 8 && <ProbabilitiesScreen inputText={inputText} />}
         </div>
 

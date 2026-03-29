@@ -5,8 +5,8 @@ import { useTranslations, useLocale } from "next-intl"
 
 const localeToLanguage: Record<string, string> = { en: "en", fr: "fr", zh: "zh" }
 
-export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, setLayer }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer: number; setLayer: (n: number) => void
+export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, setLayer, nHeads, dModel}: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer: number; setLayer: (n: number) => void, nHeads: number; dModel: number
 }) {
   const t = useTranslations("qkv")
   const locale = useLocale()
@@ -25,6 +25,7 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
   const [loadingQKV, setLoadingQKV] = useState(true)
   const [finished, setFinished] = useState(false)
   const isLayerSwitch = useRef(false)
+  const headDim = Math.floor(dModel / nHeads)
 
   useEffect(() => {
     if (!inputText.trim()) return
@@ -47,7 +48,9 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
       body: JSON.stringify({ text: inputText, layer: layer - 1, head: null, token_positions: [selectedToken], language })
     }).then(r => r.json()).then(data => {
       const vec = data.qkv_vectors?.[0]
-      if (vec) { setQ(vec.query.slice(0,64)); setK(vec.key.slice(0,64)); setV(vec.value.slice(0,64)) }
+      if (vec) {         setQ(vec.query.slice(0, headDim))
+        setK(vec.key.slice(0, headDim))
+        setV(vec.value.slice(0, headDim)) }
       setLoadingQKV(false)
     })
   }
@@ -58,7 +61,7 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
   useEffect(() => {
     if (!embedding.length || !Q.length) return
     if (isLayerSwitch.current) {
-      setQkvVisible(0); setFinished(false); setVisibleCount(768); setWeightVisible(4)
+      setQkvVisible(0); setFinished(false); setVisibleCount(dModel); setWeightVisible(4)
       let qv = 0
       const qi = setInterval(() => { qv += 4; setQkvVisible(qv); if (qv >= 64) { clearInterval(qi); setFinished(true) } }, 20)
       return () => clearInterval(qi)
@@ -67,7 +70,7 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
     let i = 0
     const interval = setInterval(() => {
       i += 32; setVisibleCount(i)
-      if (i >= 768) {
+      if (i >= dModel) {
         clearInterval(interval)
         setTimeout(() => {
           let w = 0
@@ -89,7 +92,7 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
 
   const EmbeddingMap = () => (
     <div className="grid grid-cols-48 gap-[2px]">
-      {embedding.slice(0,768).map((v,i) => {
+      {embedding.slice(0,dModel).map((v,i) => {
         const visible = i < visibleCount; const selected = i === lookupDim
         return <div key={i} onClick={() => setLookupDim(i)} className="w-[6px] h-[6px] transition-all cursor-pointer"
           style={{ backgroundColor: visible ? `rgba(168,85,247,${Math.abs(v)})` : "#1c1c1f", opacity: visible ? 1 : 0.1, transform: selected ? "scale(1.6)" : "scale(1)", boxShadow: selected ? "0 0 6px white" : "none" }}/>
@@ -153,9 +156,9 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
         <div className={`text-3xl ${weightVisible >= 4 ? "opacity-100 text-purple-400" : "opacity-0"}`}>=</div>
         {!loadingQKV && (
           <div className="flex gap-12">
-            <Heatmap data={Q} color="rgba(59,130,246," label="Query (Q) — 64 dims"/>
-            <Heatmap data={K} color="rgba(239,68,68," label="Key (K) — 64 dims"/>
-            <Heatmap data={V} color="rgba(34,197,94," label="Value (V) — 64 dims"/>
+            <Heatmap data={Q} color="rgba(59,130,246," label="Query (Q) — {headDim} dims"/>
+            <Heatmap data={K} color="rgba(239,68,68," label="Key (K) — {headDim} dims"/>
+            <Heatmap data={V} color="rgba(34,197,94," label="Value (V) — {headDim} dims"/>
           </div>
         )}
         <div className="flex gap-3 items-center">
@@ -195,13 +198,13 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
           <div className="text-[11px] text-zinc-600 leading-relaxed">{t("formulaNote")}</div>
         </div>
         <div className="border border-[#1e1e24] rounded-xl p-3 flex flex-col gap-2">
-          <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("multiHead")}</div>
-          <div className="text-[11px] text-zinc-500 leading-relaxed">{t("multiHeadDesc")}</div>
+          <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("multiHead", { nHeads })}</div>
+          <div className="text-[11px] text-zinc-500 leading-relaxed">{t("multiHeadDesc", { nHeads })}</div>
         </div>
         <div className="border-t border-[#1e1e24] pt-4 flex flex-col gap-1">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("attentionHeads")}</div>
-          <div className="font-mono text-2xl text-zinc-300 font-semibold">12</div>
-          <div className="text-[11px] text-zinc-600 leading-relaxed">{t("attentionHeadsNote")}</div>
+          <div className="font-mono text-2xl text-zinc-300 font-semibold">{ nHeads }</div>
+          <div className="text-[11px] text-zinc-600 leading-relaxed">{t("attentionHeadsNote", { floor: Math.floor(dModel / nHeads), dModel })}</div>
         </div>
         <div className="mt-auto flex justify-end">
           <button onClick={() => setStepIndex(stepIndex+1)}

@@ -6,8 +6,8 @@ import FlowArrow from "./FlowArrow"
 
 const localeToLanguage: Record<string, string> = { en: "en", fr: "fr", zh: "zh" }
 
-export default function TokenIDScreen({ stepIndex, setStepIndex, inputText }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string
+export default function TokenIDScreen({ stepIndex, setStepIndex, inputText, dModel, vocabSize, modelName }: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; dModel: number; vocabSize: number; modelName: string
 }) {
   const t = useTranslations("tokenID")
   const locale = useLocale()
@@ -78,7 +78,7 @@ export default function TokenIDScreen({ stepIndex, setStepIndex, inputText }: {
           <FlowArrow/>
           <div className="text-sm text-zinc-400 text-center">{t("matrixLabel")}</div>
           <div className="bg-[#151517] border border-[#2a2a2e] rounded-lg p-4 flex flex-col gap-2">
-            <div className="text-xs text-zinc-500 mb-2">{t("matrixSlice")}</div>
+            <div className="text-xs text-zinc-500 mb-2">{t("matrixSlice", {vocabSize, dModel})}</div>
             {filledRows.map((i) => {
               const id = tokenIDs[i]
               if (id === undefined) return null
@@ -86,7 +86,7 @@ export default function TokenIDScreen({ stepIndex, setStepIndex, inputText }: {
                 <div key={`${id}-${i}`} className="flex items-center gap-3 p-2 rounded bg-purple-700/40 scale-105 transition">
                   <div className="w-20 text-zinc-400 text-sm">{t("matrixRow", { id })}</div>
                   <div className="flex gap-1">{[...Array(8)].map((_, j) => <div key={j} className="w-5 h-4 rounded bg-purple-400"/>)}</div>
-                  <div className="text-xs text-zinc-500 ml-2">{t("matrixDims")}</div>
+                  <div className="text-xs text-zinc-500 ml-2">{t("matrixDims", { dModel })}</div>
                 </div>
               )
             })}
@@ -109,9 +109,9 @@ export default function TokenIDScreen({ stepIndex, setStepIndex, inputText }: {
 
         <div className="border border-[#1e1e24] rounded-xl p-3">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase mb-1">{t("matrixInfo")}</div>
-          <div className="text-xs text-zinc-500 leading-relaxed">{t("matrixInfoDesc")}</div>
-          <div className="font-mono text-xs text-zinc-400 mt-1">{t("matrixSize")}</div>
-          <div className="text-xs text-zinc-500 mt-2">{t("matrixParams")}</div>
+          <div className="text-xs text-zinc-500 leading-relaxed">{t("matrixInfoDesc", { modelName })}</div>
+          <div className="font-mono text-xs text-zinc-400 mt-1">{t("matrixSize", { vocabSize, dModel })}</div>
+          <div className="text-xs text-zinc-500 mt-2">{t("matrixParams", {params: Math.round(vocabSize * dModel / 1e6)})}</div>
         </div>
 
         <div className="border border-[#1e1e24] rounded-xl p-3">

@@ -10,7 +10,7 @@ function seedNum(str: string) {
   return s
 }
 
-function FlowCanvas({ token }: { token: string }) {
+function FlowCanvas({ token, dModel, vocabSize }: { token: string; dModel: number; vocabSize: number }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const s = seedNum(token)
   const vecDims = Array.from({ length: 24 }, (_, i) => {
@@ -40,13 +40,13 @@ function FlowCanvas({ token }: { token: string }) {
         </defs>
         <rect x="10" y="60" width="110" height="80" rx="10" fill="rgba(168,85,247,0.06)" stroke="rgba(168,85,247,0.35)" strokeWidth="0.8"/>
         {vecDims.map((d, i) => <circle key={i} cx={10 + 10 + (i % 8) * 12} cy={60 + 16 + Math.floor(i / 8) * 18} r="4.5" fill={d.color} opacity={d.alpha}/>)}
-        <text x="65" y="156" textAnchor="middle" fontSize="10" fill="rgba(168,85,247,0.65)" fontFamily="ui-monospace,monospace">768 dims</text>
+        <text x="65" y="156" textAnchor="middle" fontSize="10" fill="rgba(168,85,247,0.65)" fontFamily="ui-monospace,monospace">{dModel} dims</text>
         <line x1="120" y1="100" x2="178" y2="100" stroke="rgba(168,85,247,0.22)" strokeWidth="1.5" markerEnd="url(#arr2)"/>
         {[0,1,2,3,4].map(i => <circle key={i} cx="120" cy="100" r="3" fill="#a855f7" className="particle-a" style={{"--delay":`${i*220}ms`,"--travel":"58px"} as React.CSSProperties}/>)}
         <rect x="180" y="40" width="110" height="120" rx="10" fill="rgba(99,102,241,0.07)" stroke="rgba(99,102,241,0.4)" strokeWidth="0.8" className="box-pulse"/>
         {linDims.map((d, i) => <circle key={i} cx={180 + 16 + (i % 6) * 15} cy={40 + 20 + Math.floor(i / 6) * 22} r="4" fill="#6366f1" className="dim-light" style={{"--base-alpha":d.alpha,"--anim-delay":`${d.delay}ms`} as React.CSSProperties} opacity={d.alpha}/>)}
         <text x="235" y="176" textAnchor="middle" fontSize="10" fill="rgba(99,102,241,0.7)" fontFamily="ui-monospace,monospace">Linear</text>
-        <text x="235" y="188" textAnchor="middle" fontSize="9" fill="rgba(99,102,241,0.4)" fontFamily="ui-monospace,monospace">768 → 50,257</text>
+        <text x="235" y="188" textAnchor="middle" fontSize="9" fill="rgba(99,102,241,0.4)" fontFamily="ui-monospace,monospace">{dModel} → {vocabSize}</text>
         <line x1="290" y1="100" x2="348" y2="100" stroke="rgba(6,182,212,0.22)" strokeWidth="1.5" markerEnd="url(#arr2)"/>
         {[0,1,2,3,4].map(i => <circle key={i} cx="290" cy="100" r="3" fill="#06b6d4" className="particle-b" style={{"--delay":`${550+i*220}ms`,"--travel":"58px"} as React.CSSProperties}/>)}
         <rect x="350" y="60" width="90" height="80" rx="10" fill="rgba(6,182,212,0.07)" stroke="rgba(6,182,212,0.4)" strokeWidth="0.8" className="box-pulse"/>
@@ -60,8 +60,8 @@ function FlowCanvas({ token }: { token: string }) {
   )
 }
 
-export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string
+export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, nHeads, dModel, vocabSize }: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; nHeads: number; dModel: number; vocabSize: number
 }) {
   const t = useTranslations("output")
   const locale = useLocale()
@@ -104,7 +104,7 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText }
           ))}
         </div>
 
-        <FlowCanvas token={tokens[selectedToken]} />
+        <FlowCanvas token={tokens[selectedToken]} dModel={dModel} vocabSize={vocabSize} />
 
         <div className="flex flex-col gap-5 mt-2">
           {steps.map(({ num, color, textColor, labelKey, descKey }) => (
@@ -114,8 +114,8 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText }
                 {num}
               </div>
               <div className="flex flex-col gap-1">
-                <div className={`text-[10px] tracking-[0.16em] uppercase ${textColor}`}>{t(labelKey)}</div>
-                <div className="text-[11px] text-zinc-600 leading-relaxed max-w-md">{t(descKey)}</div>
+                <div className={`text-[10px] tracking-[0.16em] uppercase ${textColor}`}>{t(labelKey, {dModel, vocabSize})}</div>
+                <div className="text-[11px] text-zinc-600 leading-relaxed max-w-md">{t(descKey, {vocabSize})}</div>
               </div>
             </div>
           ))}
@@ -132,7 +132,7 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText }
           {bullets.map(({ color, key }, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full ${color} shrink-0 mt-0.5 opacity-80`} />
-              <span className="text-zinc-400 leading-relaxed">{t(key)}</span>
+              <span className="text-zinc-400 leading-relaxed">{t(key, {dModel, vocabSize})}</span>
             </div>
           ))}
         </div>
@@ -144,7 +144,7 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText }
 
         <div className="border-t border-[#1e1e24] pt-4 flex flex-col gap-1">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("vocabSize")}</div>
-          <div className="font-mono text-2xl text-zinc-300 font-semibold">50,257</div>
+          <div className="font-mono text-2xl text-zinc-300 font-semibold">{vocabSize}</div>
           <div className="text-[11px] text-zinc-600 leading-relaxed">{t("vocabNote")}</div>
         </div>
 

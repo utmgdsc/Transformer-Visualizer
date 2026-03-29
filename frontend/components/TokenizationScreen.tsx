@@ -5,8 +5,8 @@ import FlowArrow from "./FlowArrow"
 
 const localeToLanguage: Record<string, string> = { en: "en", fr: "fr", zh: "zh" }
 
-export default function TokenizationScreen({ stepIndex, setStepIndex, inputText, runSignal }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; runSignal: number
+export default function TokenizationScreen({ stepIndex, setStepIndex, inputText, runSignal, vocabSize, modelName }: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; runSignal: number; vocabSize: number, modelName: string
 }) {
   const t = useTranslations("tokenization")
   const locale = useLocale()
@@ -100,8 +100,8 @@ const interval = setInterval(() => {
 
         <div className="border border-[#1e1e24] rounded-xl p-3">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase mb-1">{t("vocabulary")}</div>
-          <div className="text-xs text-zinc-500 leading-relaxed">{t("vocabularyDesc")}</div>
-          <div className="font-mono text-xs text-zinc-400 mt-1">{t("vocabularySize")}</div>
+          <div className="text-xs text-zinc-500 leading-relaxed">{t("vocabularyDesc", { modelName })}</div>
+          <div className="font-mono text-xs text-zinc-400 mt-1">{t("vocabularySize", { vocabSize })}</div>
           <div className="text-xs text-zinc-500 mt-2">{t("vocabularyNote")}</div>
         </div>
 

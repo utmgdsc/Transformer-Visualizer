@@ -6,8 +6,8 @@ import { useTranslations, useLocale } from "next-intl"
 
 const localeToLanguage: Record<string, string> = { en: "en", fr: "fr", zh: "zh" }
 
-export default function Embedding({ stepIndex, setStepIndex, inputText }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string
+export default function Embedding({ stepIndex, setStepIndex, inputText, dModel }: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; dModel: number
 }) {
   const t = useTranslations("embedding")
   const locale = useLocale()
@@ -53,7 +53,7 @@ export default function Embedding({ stepIndex, setStepIndex, inputText }: {
     let i = 0
     const interval = setInterval(() => {
       i += 32; setVisibleCount(i)
-      if (i >= 768) { clearInterval(interval); setFinished(true) }
+      if (i >= dModel) { clearInterval(interval); setFinished(true) }
     }, 25)
     return () => clearInterval(interval)
   }, [selectedToken, currentEmbedding])
@@ -61,7 +61,7 @@ export default function Embedding({ stepIndex, setStepIndex, inputText }: {
   function renderHeatmap(vec: number[]) {
     return (
       <div className="grid grid-cols-32 gap-[2px]">
-        {vec.slice(0, 768).map((v, i) => {
+        {vec.slice(0, dModel).map((v, i) => {
           const intensity = Math.min(Math.abs(v), 1)
           const isVisible = i < visibleCount
           const isSelected = i === lookupDim
@@ -103,12 +103,12 @@ export default function Embedding({ stepIndex, setStepIndex, inputText }: {
 
         {tokens.length > 0 && !loading && (
           <div className="text-sm text-zinc-400 text-center">
-            {t("vectorLabel", { token: tokens[selectedToken]?.toUpperCase() })}
+            {t("vectorLabel", { token: tokens[selectedToken]?.toUpperCase(), dModel})}
           </div>
         )}
 
         <div className="flex gap-2 items-center">
-          <input type="number" min={0} max={767} placeholder="dim (0-767)"
+          <input type="number" min={0} max={dModel - 1} placeholder={`dim (0-${dModel - 1})`}
             className="bg-[#1c1c1f] px-3 py-1 rounded text-sm w-32"
             onChange={(e) => setLookupDim(Number(e.target.value))} />
           {lookupValue !== null && (

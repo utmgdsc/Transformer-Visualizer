@@ -136,8 +136,8 @@ function VectorHeatmap({ data, color, lookupDim, setLookupDim, visible }: { data
   )
 }
 
-export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText, layer, head }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer: number; head: number
+export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText, layer, head, nHeads, dModel, modelName}: {
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer: number; head: number, nHeads: number, dModel: number, modelName: string
 }) {
   const t = useTranslations("attentionOut")
   const locale = useLocale()
@@ -204,7 +204,7 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
                 </div>
                 <div className="text-2xl text-zinc-600 transition-all duration-300 mt-6 shrink-0" style={{ opacity: stage >= 2 ? 1 : 0, transform: stage >= 2 ? "scale(1)" : "scale(0.7)" }}>×</div>
                 <div className="flex flex-col items-center gap-3">
-                  <div className="text-xs text-zinc-500 tracking-widest uppercase">{t("valueVec")}</div>
+                  <div className="text-xs text-zinc-500 tracking-widest uppercase">{t("valueVec", { floor: Math.floor(dModel / nHeads) })}</div>
                   <div className="rounded-2xl p-5 transition-all duration-300" style={{ background: "rgba(34,197,94,0.04)", border: `1px solid ${stage >= 2 ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)"}`, opacity: stage >= 2 ? 1 : 0, transform: stage >= 2 ? "translateY(0)" : "translateY(8px)" }}>
                     <VectorHeatmap data={valueVec.length ? valueVec : Array(64).fill(0)} color="rgba(34,197,94," lookupDim={lookupDim} setLookupDim={setLookupDim} visible={stage >= 2} />
                   </div>
@@ -212,7 +212,7 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
               </div>
               <div className="text-xl text-zinc-600 transition-all duration-300" style={{ opacity: stage >= 3 ? 1 : 0, transform: stage >= 3 ? "translateY(0)" : "translateY(-6px)" }}>↓</div>
               <div className="flex flex-col items-center gap-3">
-                <div className="text-xs text-zinc-500 tracking-widest uppercase">{t("outputVec")}</div>
+                <div className="text-xs text-zinc-500 tracking-widest uppercase">{t("outputVec", { floor: Math.floor(dModel / nHeads) })}</div>
                 <div className="rounded-2xl p-5 transition-all duration-300" style={{ background: "rgba(168,85,247,0.04)", border: `1px solid ${stage >= 3 ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.05)"}`, opacity: stage >= 3 ? 1 : 0, transform: stage >= 3 ? "translateY(0)" : "translateY(8px)" }}>
                   <VectorHeatmap data={outVec.length ? outVec : Array(64).fill(0)} color="rgba(168,85,247," lookupDim={lookupDim} setLookupDim={setLookupDim} visible={stage >= 3} />
                 </div>
@@ -240,21 +240,21 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
           {(["step1","step2","step3"] as const).map((key, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full shrink-0 mt-0.5 opacity-80 ${["bg-purple-400","bg-green-400","bg-violet-400"][i]}`} />
-              <span className="text-zinc-400 leading-relaxed">{t(key)}</span>
+              <span className="text-zinc-400 leading-relaxed">{t(key, { floor: Math.floor(dModel / nHeads) })}</span>
             </div>
           ))}
         </div>
         <div className="border border-[#1e1e24] rounded-xl p-3 flex flex-col gap-2">
-          <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("multiHead")}</div>
-          <div className="text-[11px] text-zinc-500 leading-relaxed">{t("multiHeadDesc", { head: head + 1 })}</div>
+          <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("multiHead", { nHeads })}</div>
+          <div className="text-[11px] text-zinc-500 leading-relaxed">{t("multiHeadDesc", { nHeads, head: head + 1, modelName})}</div>
         </div>
         <div className="border border-[#1e1e24] rounded-xl p-3 flex flex-col gap-2">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("concatenation")}</div>
-          <div className="text-[11px] text-zinc-500 leading-relaxed">{t("concatenationDesc")}</div>
+          <div className="text-[11px] text-zinc-500 leading-relaxed">{t("concatenationDesc", {nHeads})}</div>
         </div>
         <div className="border-t border-[#1e1e24] pt-4 flex flex-col gap-1">
           <div className="text-[10px] tracking-widest text-zinc-600 uppercase">{t("attentionHeads")}</div>
-          <div className="font-mono text-2xl text-zinc-300 font-semibold">12</div>
+          <div className="font-mono text-2xl text-zinc-300 font-semibold">{nHeads}</div>
           <div className="text-[11px] text-zinc-600 leading-relaxed">{t("attentionHeadsNote")}</div>
         </div>
         <div className="mt-auto flex justify-end">
