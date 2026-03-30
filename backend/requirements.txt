@@ -4,3 +4,5 @@ transformer-lens
 torch
 pydantic-settings
 python-dotenv
+deepeval
+litellm
