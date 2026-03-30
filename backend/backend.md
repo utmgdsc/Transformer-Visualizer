@@ -227,6 +227,68 @@ response:
 }
 ```
 
+### tokenize text and get embeddings
+
+```text
+POST /v1/tokenize
+```
+
+request body:
+
+```json
+{
+  "text": "The quick brown fox",
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The quick brown fox",
+  "num_tokens": 4,
+  "embedding_dim": 768,
+  "token_embeddings": [
+    {
+      "token": "The",
+      "token_id": 464,
+      "embedding": [0.123, -0.456, 0.789, ...]
+    },
+    {
+      "token": " quick",
+      "token_id": 2068,
+      "embedding": [0.234, -0.567, 0.890, ...]
+    },
+    {
+      "token": " brown",
+      "token_id": 2812,
+      "embedding": [0.345, -0.678, 0.901, ...]
+    },
+    {
+      "token": " fox",
+      "token_id": 6419,
+      "embedding": [0.456, -0.789, 0.123, ...]
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+- `text` (required): input text to tokenize
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
+**Returns:**
+
+- `input_text`: the original input text
+- `num_tokens`: total number of tokens
+- `embedding_dim`: dimension of each embedding vector
+- `token_embeddings`: list of token objects containing:
+  - `token`: the token string representation
+  - `token_id`: the numeric token ID
+  - `embedding`: the embedding vector for this token (before any layer processing)
+
 ### extract attention patterns
 
 ```text
@@ -270,6 +332,56 @@ response:
 - `text` (required): input text to analyze
 - `layer` (optional): specific layer index to extract (None = all layers)
 - `head` (optional): specific attention head to extract (None = all heads)
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
+### extract attention head out (Attention × Value = Out)
+
+```text
+POST /v1/attention/head-out
+```
+
+request body:
+
+```json
+{
+  "text": "The quick brown fox",
+  "layer": 0,
+  "head": 0,
+  "include_bias": true,
+  "include_attention_matrix": false,
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The quick brown fox",
+  "tokens": ["The", " quick", " brown", " fox"],
+  "patterns": [
+    {
+      "layer": 0,
+      "head": 0,
+      "attention_matrix": null,
+      "value_vectors": [[...], ...],
+      "out_vectors": [[...], ...],
+      "out_vector_kind": "reconstructed_from_z",
+      "includes_bias": true
+    }
+  ]
+}
+```
+
+**Note:** `value_vectors` has shape `[seq_len, d_head]` and `out_vectors` has shape `[seq_len, d_model]`. Vectors are abbreviated above for clarity. `attention_matrix` is `null` by default; set `include_attention_matrix: true` to receive it with shape `[seq_len, seq_len]`.
+
+**Parameters:**
+
+- `text` (required): input text to analyze
+- `head` (required): specific attention head index to extract
+- `layer` (optional): specific layer index to extract (None = all layers)
+- `include_bias` (optional, default: `true`): when `true`, distributes `b_O / n_heads` into each head's `out_vectors` so they sum to the full layer attention output; set to `false` to get pure per-head contributions without any bias term
+- `include_attention_matrix` (optional, default: `false`): when `true`, includes the `[seq_len, seq_len]` attention matrix in each pattern; omitted by default to reduce response size
 - `language` (optional, default: "en"): language model to use ("en" or "fr")
 
 ### ablation experiment

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 
 class InferenceRequest(BaseModel):
@@ -72,6 +72,37 @@ class AttentionResponse(BaseModel):
     patterns: List[AttentionPattern]
 
 
+class AttentionHeadOutRequest(BaseModel):
+    """Request head-out data for a specific head, with an optional layer filter."""
+
+    text: str
+    layer: Optional[int] = None
+    head: int
+    include_bias: bool = True  # if True, b_O/n_heads is added to each head's out_vectors
+    include_attention_matrix: bool = False  # if True, attention_matrix is included in each pattern
+    language: str = "en"
+
+
+class AttentionHeadOutPattern(BaseModel):
+    """Head-out data for one (layer, head)."""
+
+    layer: int
+    head: int
+    attention_matrix: Optional[List[List[float]]] = None  # [q, k]; only present when include_attention_matrix=True
+    value_vectors: List[List[float]]  # [seq, d_head]
+    out_vectors: List[List[float]]    # [seq, d_model]
+    out_vector_kind: Literal["result", "reconstructed_from_z"]  # "result" or "reconstructed_from_z"
+    includes_bias: bool               # whether b_O/n_heads was added to out_vectors
+
+
+class AttentionHeadOutResponse(BaseModel):
+    """Head-out data for one or more (layer, head) selections."""
+
+    input_text: str
+    tokens: List[str]
+    patterns: List[AttentionHeadOutPattern]
+
+
 class AblationRequest(BaseModel):
     # input text for inference
     text: str
@@ -101,7 +132,6 @@ class AblationResponse(BaseModel):
     generated_text: str
     baseline_text: str  # generation without ablation for comparison
 
-
 class LLMJudgeRequest(BaseModel):
     # input information
     input_text: str
@@ -114,7 +144,8 @@ class LLMJudgeResponse(BaseModel):
     conclusion: str  # "low", "medium", "high"
     reason: str  # explanation from judge model
     passed: bool  # True if the score meets the acceptance threshold
-      
+
+
 class QKVVectors(BaseModel):
     # QKV vectors for a specific token position
     token_position: int
@@ -260,11 +291,7 @@ class EntropyRequest(BaseModel):
     # generation parameters
     max_tokens: int = 50
     temperature: float = 1.0
-    
-    # language selection
-    language: str = "en"
-
-
+      
 class EntropyResponse(BaseModel):
     # input and output text
     input_text: str
@@ -272,4 +299,29 @@ class EntropyResponse(BaseModel):
     
     # entropy scores for each generated token
     token_scores: List[EntropyTokenScore]
+    
+class TokenEmbedding(BaseModel):
+    # token and its embedding vector
+    token: str
+    token_id: int
+    embedding: List[float]  # [d_model]
 
+
+class TokenizationRequest(BaseModel):
+    # input text to tokenize
+    text: str
+    # language selection
+    language: str = "en"
+
+class TokenizationResponse(BaseModel):
+    # input text
+    input_text: str
+    
+    # total number of tokens
+    num_tokens: int
+    
+    # embedding dimension
+    embedding_dim: int
+    
+    # tokens with their IDs and embedding vectors
+    token_embeddings: List[TokenEmbedding]
