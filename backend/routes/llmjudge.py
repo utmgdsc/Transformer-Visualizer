@@ -9,6 +9,7 @@ from deepeval.test_case import LLMTestCase
 from deepeval.metrics import GEval
 from deepeval.test_case import LLMTestCaseParams
 from schemas import LLMJudgeRequest, LLMJudgeResponse
+from config import settings
 import os
 
 router = APIRouter(prefix="/v1", tags=["llmjudge"])  
@@ -19,15 +20,14 @@ def get_judge_model():
     if judge_model:
         return judge_model
 
-    groq_key = os.environ.get("GROQ_API_KEY")
-    if not groq_key:
+    if not settings.groq_api_key:
         raise HTTPException(
             status_code=503,
             detail="GROQ_API_KEY is not set. Hallucination metrics (LLM-as-a-judge) failed."
         )
     judge_model = LiteLLMModel(
         model="groq/llama-3.3-70b-versatile",
-        api_key=groq_key
+        api_key=settings.groq_api_key
     )
     return judge_model
 

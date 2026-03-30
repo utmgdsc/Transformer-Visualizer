@@ -62,3 +62,13 @@ async def home():
         "app": settings.app_name,
         "version": "v1"
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=False,  # Set to False for production
+        log_level="info"
+    )
