@@ -69,8 +69,8 @@ class EntropyCalculator:
                 results.append((next_token, entropy, top_probs_list))
                 generated_tokens.append(next_token)
                 
-                # append token for next iteration
-                tokens = torch.cat([tokens, next_token_id.unsqueeze(0).unsqueeze(0)], dim=1)
+                # append token for next iteration (ensure shape matches [1, seq_len])
+                tokens = torch.cat([tokens, next_token_id.unsqueeze(0)], dim=1)
         
         generated_text = "".join(generated_tokens)
         return generated_text, results
