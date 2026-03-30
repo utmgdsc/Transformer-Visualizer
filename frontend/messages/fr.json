@@ -99,6 +99,8 @@
     "masked": "masqué (futur)"
   },
   "attentionOut": {
+    "animExplanation1": "La matrice d'attention est (tokens x tokens) et chaque ligne somme à 1. La matrice des valeurs est (tokens x dims). Cette multiplication est valide car la dimension intérieure partagée, le nombre de tokens, correspond des deux côtés.",
+    "animExplanation2": "Chaque ligne de sortie est une moyenne pondérée de toutes les lignes de valeurs. Les poids d'attention servent de coefficients de mélange. Les tokens avec des scores plus élevés contribuent davantage au résultat final.",
     "instruction": "APPLIQUER L'ATTENTION POUR PRODUIRE LA SORTIE",
     "computing": "Calcul de la Sortie d'Attention",
     "token": "Token :",

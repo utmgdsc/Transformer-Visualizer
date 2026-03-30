@@ -207,8 +207,14 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
           <div className="text-[11px] text-zinc-600 leading-relaxed">{t("attentionHeadsNote", { floor: Math.floor(dModel / nHeads), dModel })}</div>
         </div>
         <div className="mt-auto flex justify-end">
-          <button onClick={() => setStepIndex(stepIndex+1)}
-            className={`px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] text-zinc-400 hover:bg-[#1a1a20] hover:text-zinc-200 transition ${finished ? "border-purple-500/40 text-purple-300" : ""}`}>
+        <button
+            onClick={() => setStepIndex(stepIndex + 1)}
+            className={`px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] transition ${
+              finished
+                ? "bg-purple-600 text-white animate-pulse"
+                : "text-zinc-400 hover:bg-[#1a1a20]"
+            }`}
+          >
             {t("next")}
           </button>
         </div>

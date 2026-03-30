@@ -50,7 +50,7 @@ function ActivationBars({ seedVec, color, label, visible }: { seedVec: number[];
 }
 
 function GeluCurve({ highlightX }: { highlightX: number | null }) {
-  const W = 200, H = 80, xMin = -3, xMax = 3, yMin = -0.5, yMax = 1.5
+  const W = 200, H = 60, xMin = -3, xMax = 3, yMin = -0.5, yMax = 1.5
   function toSVG(x: number, y: number) { return [((x - xMin) / (xMax - xMin)) * W, H - ((y - yMin) / (yMax - yMin)) * H] }
   const points: string[] = []
   for (let xi = 0; xi <= 100; xi++) { const x = xMin + (xi / 100) * (xMax - xMin); const [px, py] = toSVG(x, gelu(x)); points.push(`${px},${py}`) }
@@ -59,7 +59,7 @@ function GeluCurve({ highlightX }: { highlightX: number | null }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="text-[9px] tracking-widest text-zinc-600 uppercase">GELU activation</div>
-      <svg width={W} height={H} style={{ overflow: "visible" }}>
+      <svg width={W} height={H} style={{ overflow: "hidden" }}>
         <line x1={0} y1={H * (1.5 / 2)} x2={W} y2={H * (1.5 / 2)} stroke="rgba(255,255,255,0.07)" strokeWidth={1}/>
         <line x1={W / 2} y1={0} x2={W / 2} y2={H} stroke="rgba(255,255,255,0.07)" strokeWidth={1}/>
         <polyline points={points.join(" ")} fill="none" stroke="rgba(52,211,153,0.7)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
@@ -124,19 +124,45 @@ function MLPFlow({ attnVec, mlpVec, geluVec, finalVec, hoverIdx, setHoverIdx, ph
 }
 
 export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 1, head = 0, nHeads, dModel }: {
-  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer?: number; head?: number, nHeads: number; dModel: number
+  stepIndex: number; setStepIndex: (n: number) => void; inputText: string; layer?: number; head?: number; nHeads: number; dModel: number
 }) {
   const t = useTranslations("mlp")
   const locale = useLocale()
   const language = localeToLanguage[locale] ?? "en"
 
-  const tokens = inputText.trim().length > 0 ? inputText.split(/\s+/) : []
+  // ── tokenize via backend instead of whitespace split ──
+  const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState(0)
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const [phase, setPhase] = useState(0)
+  const [finished, setFinished] = useState(false)
   const [realFinalVec, setRealFinalVec] = useState<number[] | null>(null)
   const [realAttnVec, setRealAttnVec] = useState<number[] | null>(null)
   const [lookupDim, setLookupDim] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!inputText.trim()) return
+    const run = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: inputText, language }),
+        })
+        const data = await res.json()
+        const filtered = data.token_embeddings.filter((te: any) =>
+          !te.token.match(/^<\|.*\|>$|^\[.*\]$/)
+        )
+        const toks = filtered.map((te: any) => te.token)
+        setTokens(toks.length > 0 ? toks : inputText.split(/\s+/))
+        setSelectedToken(0)
+      } catch {
+        setTokens(inputText.split(/\s+/))
+        setSelectedToken(0)
+      }
+    }
+    run()
+  }, [inputText, language])
 
   useEffect(() => {
     if (!tokens.length) return
@@ -149,12 +175,20 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
       if (out?.mlp_output) setRealFinalVec(out.mlp_output)
       if (out?.attention_residual) setRealAttnVec(out.attention_residual.slice(0, 64))
       setPhase(0)
-      ;[60,360,700,1040].forEach((d, i) => setTimeout(() => setPhase(i + 1), d))
+      setFinished(false)
+      const times = [60, 360, 700, 1040]
+      times.forEach((delay, i) => {
+        setTimeout(() => {
+          const nextPhase = i + 1
+          setPhase(nextPhase)
+          if (nextPhase === 4) setTimeout(() => setFinished(true), 200)
+        }, delay)
+      })
     }).catch(console.error)
-  }, [inputText, selectedToken, layer, language])
+  }, [inputText, selectedToken, layer, language, tokens])
 
   useEffect(() => {
-    const ts = [150,450,800,1150].map((d, i) => setTimeout(() => setPhase(i + 1), d))
+    const ts = [150, 450, 800, 1150].map((d, i) => setTimeout(() => setPhase(i + 1), d))
     return () => ts.forEach(clearTimeout)
   }, [])
 
@@ -185,11 +219,15 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
         <div className="flex gap-3 mb-8 flex-wrap">
           {tokens.map((tok, i) => (
             <button key={i} onClick={() => setSelectedToken(i)}
-              className={`px-4 py-2 rounded-xl border text-sm font-mono transition-all duration-200 ${i === selectedToken ? "bg-purple-600/90 border-purple-400/60 text-white shadow-[0_0_14px_rgba(168,85,247,0.4)]" : "bg-[#111114] border-[#2a2a2e] text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"}`}>{tok}</button>
+              className={`px-4 py-2 rounded-xl border text-sm font-mono transition-all duration-200 ${
+                i === selectedToken
+                  ? "bg-purple-600/90 border-purple-400/60 text-white shadow-[0_0_14px_rgba(168,85,247,0.4)]"
+                  : "bg-[#111114] border-[#2a2a2e] text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+              }`}>{tok}</button>
           ))}
         </div>
         <div className="overflow-y-auto pr-2" style={{ maxHeight: "calc(100vh - 260px)" }}>
-          <MLPFlow attnVec={attnVec} mlpVec={mlpVec} geluVec={geluVec} finalVec={finalVec} hoverIdx={hoverIdx} setHoverIdx={setHoverIdx} phase={phase} labels={flowLabels} nHeads={nHeads} dModel={dModel} />
+          <MLPFlow attnVec={attnVec} mlpVec={mlpVec} geluVec={geluVec} finalVec={finalVec} hoverIdx={hoverIdx} setHoverIdx={setHoverIdx} phase={phase} labels={flowLabels} nHeads={nHeads} dModel={dModel}/>
         </div>
       </div>
 
@@ -202,7 +240,7 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
           {(["step1","step2","step3","step4"] as const).map((key, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full shrink-0 mt-0.5 opacity-80 ${["bg-purple-500","bg-blue-500","bg-emerald-400","bg-violet-400"][i]}`}/>
-              <span className="text-zinc-400 leading-relaxed">{t(key, { floor: Math.floor(dModel / nHeads), dModel})}</span>
+              <span className="text-zinc-400 leading-relaxed">{t(key, { floor: Math.floor(dModel / nHeads), dModel })}</span>
             </div>
           ))}
         </div>
@@ -231,7 +269,16 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
           )}
         </div>
         <div className="mt-auto flex justify-end">
-          <button onClick={() => setStepIndex(stepIndex + 1)} className="px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] text-zinc-400 hover:bg-[#1a1a20] hover:text-zinc-200 transition">{t("next")}</button>
+          <button
+            onClick={() => setStepIndex(stepIndex + 1)}
+            className={`px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] transition ${
+              finished
+                ? "bg-purple-600 text-white animate-pulse"
+                : "text-zinc-400 hover:bg-[#1a1a20]"
+            }`}
+          >
+            {t("next")}
+          </button>
         </div>
       </div>
     </div>

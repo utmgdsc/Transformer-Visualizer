@@ -67,8 +67,41 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, 
   const locale = useLocale()
   const language = localeToLanguage[locale] ?? "en"
 
-  const tokens = inputText.trim().length > 0 ? inputText.split(/\s+/) : ["The"]
+  const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState(0)
+  const [finished, setFinished] = useState(false)
+
+  // ── tokenize via backend, same pattern as QKVScreen ──
+  useEffect(() => {
+    if (!inputText.trim()) return
+    const run = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/v1/tokenize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: inputText, language }),
+        })
+        const data = await res.json()
+        const filtered = data.token_embeddings.filter((te: any) =>
+          !te.token.match(/^<\|.*\|>$|^\[.*\]$/)
+        )
+        const toks = filtered.map((te: any) => te.token)
+        setTokens(toks.length > 0 ? toks : inputText.split(/\s+/))
+        setSelectedToken(0)
+      } catch {
+        // fallback to whitespace split if backend unavailable
+        setTokens(inputText.split(/\s+/))
+        setSelectedToken(0)
+      }
+    }
+    run()
+  }, [inputText, language])
+
+  useEffect(() => {
+    setFinished(false)
+    const timer = setTimeout(() => setFinished(true), 1200)
+    return () => clearTimeout(timer)
+  }, [selectedToken])
 
   const steps = [
     { num: "1", color: "rgba(168,85,247,0.4)", textColor: "text-purple-400", labelKey: "step1Label" as const, descKey: "step1Desc" as const },
@@ -104,7 +137,7 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, 
           ))}
         </div>
 
-        <FlowCanvas token={tokens[selectedToken]} dModel={dModel} vocabSize={vocabSize} />
+        <FlowCanvas token={tokens[selectedToken] ?? ""} dModel={dModel} vocabSize={vocabSize} />
 
         <div className="flex flex-col gap-5 mt-2">
           {steps.map(({ num, color, textColor, labelKey, descKey }) => (
@@ -114,8 +147,8 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, 
                 {num}
               </div>
               <div className="flex flex-col gap-1">
-                <div className={`text-[10px] tracking-[0.16em] uppercase ${textColor}`}>{t(labelKey, {dModel, vocabSize})}</div>
-                <div className="text-[11px] text-zinc-600 leading-relaxed max-w-md">{t(descKey, {vocabSize})}</div>
+                <div className={`text-[10px] tracking-[0.16em] uppercase ${textColor}`}>{t(labelKey, { dModel, vocabSize })}</div>
+                <div className="text-[11px] text-zinc-600 leading-relaxed max-w-md">{t(descKey, { vocabSize })}</div>
               </div>
             </div>
           ))}
@@ -132,7 +165,7 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, 
           {bullets.map(({ color, key }, i) => (
             <div key={i} className="flex items-start gap-2.5">
               <div className={`w-4 h-4 rounded-full ${color} shrink-0 mt-0.5 opacity-80`} />
-              <span className="text-zinc-400 leading-relaxed">{t(key, {dModel, vocabSize})}</span>
+              <span className="text-zinc-400 leading-relaxed">{t(key, { dModel, vocabSize })}</span>
             </div>
           ))}
         </div>
@@ -149,8 +182,14 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, 
         </div>
 
         <div className="mt-auto flex justify-end">
-          <button onClick={() => setStepIndex(stepIndex + 1)}
-            className="px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] text-zinc-400 hover:bg-[#1a1a20] hover:text-zinc-200 transition">
+          <button
+            onClick={() => setStepIndex(stepIndex + 1)}
+            className={`px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] transition ${
+              finished
+                ? "bg-purple-600 text-white animate-pulse"
+                : "text-zinc-400 hover:bg-[#1a1a20]"
+            }`}
+          >
             {t("next")}
           </button>
         </div>

@@ -99,6 +99,8 @@
     "masked": "masked (future)"
   },
   "attentionOut": {
+    "animExplanation1": "The attention matrix is (tokens x tokens) and each row sums to 1. The value matrix is (tokens x dims). This multiplication is valid because the shared inner dimension, number of tokens, matches on both sides.",
+    "animExplanation2": "Each output row is a weighted average of all value rows. The attention weights act as mixing coefficients. Tokens with higher scores contribute more to the final result.",
     "instruction": "APPLY ATTENTION TO PRODUCE OUTPUT",
     "computing": "Computing Attention Output",
     "token": "Token:",

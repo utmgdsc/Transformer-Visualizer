@@ -27,13 +27,16 @@ export default function SelfAttentionScreen({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<"bars" | "matrix">("bars")
+  const [finished, setFinished] = useState(false)
 
   useEffect(() => { setQueryToken(0) }, [inputText])
   useEffect(() => { fetchAttention() }, [inputText, head, layer, language])
 
   async function fetchAttention() {
     if (!inputText.trim()) return
-    setLoading(true); setError(null)
+    setLoading(true)
+    setError(null)
+    setFinished(false)
     try {
       const res = await fetch("http://localhost:8000/v1/attention", {
         method: "POST",
@@ -51,6 +54,7 @@ export default function SelfAttentionScreen({
       const fullMatrix: number[][] = data.patterns[0].attention_matrix
       setAttentionMatrix(keepIndices.map(row => keepIndices.map(col => fullMatrix[row]?.[col] ?? 0)))
       setQueryToken(0)
+      setTimeout(() => setFinished(true), 200)
     } catch (err) {
       console.error("attention fetch failed", err)
       setError(t("error"))
@@ -233,10 +237,16 @@ export default function SelfAttentionScreen({
           <div className="text-[11px] text-zinc-600 leading-relaxed">{t("whyMaskDesc", {modelName})}</div>
         </div>
         <div className="mt-auto flex justify-end">
-          <button onClick={() => setStepIndex(stepIndex + 1)}
-            className="px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] text-zinc-400 hover:bg-[#1a1a20] hover:text-zinc-200 transition">
-            {t("next")}
-          </button>
+        <button
+          onClick={() => setStepIndex(stepIndex + 1)}
+          className={`px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] transition ${
+            finished
+              ? "bg-purple-600 text-white animate-pulse"
+              : "text-zinc-400 hover:bg-[#1a1a20]"
+          }`}
+        >
+          {t("next")}
+        </button>
         </div>
       </div>
     </div>

@@ -9,11 +9,13 @@ const localeToLanguage: Record<string, string> = {
   zh: "zh",
 }
 
-function MatMulIntro({ tokens, valueVec, onDone, computingLabel }: {
+function MatMulIntro({ tokens, valueVec, onDone, computingLabel, explanation1, explanation2 }: {
   tokens: string[]
   valueVec: number[]
   onDone: () => void
   computingLabel: string
+  explanation1: string
+  explanation2: string
 }) {
   const ROWS = Math.min(tokens.length, 6)
   const COLS = Math.min(tokens.length, 6)
@@ -33,36 +35,116 @@ function MatMulIntro({ tokens, valueVec, onDone, computingLabel }: {
   const [activeRow, setActiveRow] = useState(-1)
   const [activeVecCell, setActiveVecCell] = useState(-1)
   const [filledResults, setFilledResults] = useState<number[]>([])
-  const [phase, setPhase] = useState<"animating" | "done">("animating")
-  const doneRef = useRef(false)
+  const [phase, setPhase] = useState<"idle" | "animating" | "paused" | "done">("idle")
+  const [explanationStep, setExplanationStep] = useState(0)
+  const [textVisible, setTextVisible] = useState(false)
+  const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([])
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const resumeRef = useRef<(() => void) | null>(null)
 
-  useEffect(() => {
-    if (!valueVec.length || doneRef.current) return
+  function clearAllTimers() {
+    timerRefs.current.forEach(clearTimeout)
+    timerRefs.current = []
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
+  }
+
+  function track(id: ReturnType<typeof setTimeout>) {
+    timerRefs.current.push(id); return id
+  }
+
+  function pause() {
+    clearAllTimers()
+    setPhase("paused")
+  }
+
+  function resume() {
+    if (resumeRef.current) {
+      setPhase("animating")
+      resumeRef.current()
+    }
+  }
+
+  function runAnimation() {
+    clearAllTimers()
+    setActiveRow(-1); setActiveVecCell(-1); setFilledResults([])
+    setPhase("animating"); setExplanationStep(0); setTextVisible(false)
+
+    track(setTimeout(() => { setExplanationStep(1); setTextVisible(true) }, 900))
+
     let row = 0
+
     const sweepRow = () => {
       if (row >= ROWS) {
-        setTimeout(() => { setPhase("done"); setTimeout(() => { doneRef.current = true; onDone() }, 600) }, 500)
+        track(setTimeout(() => {
+          setPhase("done")
+          track(setTimeout(() => onDone(), 800))
+        }, 800))
         return
       }
       setActiveRow(row); setActiveVecCell(-1)
+
+      if (row === Math.floor(ROWS / 2)) {
+        setTextVisible(false)
+        track(setTimeout(() => { setExplanationStep(2); setTextVisible(true) }, 600))
+      }
+
       let col = 0
-      const colTimer = setInterval(() => {
+      const tick = () => {
         setActiveVecCell(col); col++
         if (col >= VEC_DIMS) {
-          clearInterval(colTimer)
+          if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
           const r = row; setFilledResults(prev => [...prev, r]); row++
-          setTimeout(sweepRow, 180)
+          const nextTimer = track(setTimeout(sweepRow, 500))
+          // save resume point: restart from current row
+          resumeRef.current = () => { track(setTimeout(sweepRow, 300)) }
         }
-      }, 60)
+      }
+      intervalRef.current = setInterval(tick, 220)
+      resumeRef.current = () => {
+        intervalRef.current = setInterval(tick, 220)
+      }
     }
-    const startTimer = setTimeout(sweepRow, 300)
-    return () => clearTimeout(startTimer)
+
+    track(setTimeout(sweepRow, 800))
+  }
+
+  useEffect(() => {
+    if (!valueVec.length) return
+    runAnimation()
+    return clearAllTimers
   }, [valueVec])
+
+  const explanations = [
+    { step: 1, text: explanation1 },
+    { step: 2, text: explanation2 },
+  ]
+
+  const currentExplanation = explanations.find(e => e.step === explanationStep)
 
   return (
     <div className="flex flex-col items-center gap-8 transition-opacity duration-500" style={{ opacity: phase === "done" ? 0 : 1 }}>
-      <div className="text-xs text-zinc-500 tracking-widest uppercase mb-2">{computingLabel}</div>
+      <div className="flex items-center gap-3">
+        <div className="text-xs text-zinc-500 tracking-widest uppercase">{computingLabel}</div>
+        {phase === "animating" && (
+          <button
+            onClick={pause}
+            className="text-[10px] text-zinc-600 border border-zinc-800 rounded px-2 py-0.5 hover:text-zinc-400 hover:border-zinc-600 transition"
+          >
+            ⏸ pause
+          </button>
+        )}
+        {phase === "paused" && (
+          <button
+            onClick={resume}
+            className="text-[10px] text-zinc-500 border border-zinc-700 rounded px-2 py-0.5 hover:text-zinc-300 hover:border-zinc-500 transition"
+          >
+            ▶ resume
+          </button>
+        )}
+      </div>
+
       <div className="flex items-center gap-6">
+        {/* attention weight matrix */}
         <div className="flex flex-col" style={{ gap: GAP }}>
           <div className="flex" style={{ gap: GAP, paddingLeft: 32 }}>
             {Array.from({ length: COLS }).map((_, j) => (
@@ -73,28 +155,72 @@ function MatMulIntro({ tokens, valueVec, onDone, computingLabel }: {
             <div key={i} className="flex items-center" style={{ gap: GAP }}>
               <div style={{ width: 28, fontSize: 9 }} className="text-right text-zinc-600 truncate shrink-0 pr-1">{tokens[i]?.slice(0, 4)}</div>
               {Array.from({ length: COLS }).map((_, j) => {
-                const val = getWeight(i, j); const isActive = i === activeRow; const alpha = 0.15 + val * 0.82
-                return <div key={j} className="rounded transition-all duration-150" style={{ width: CELL, height: CELL, backgroundColor: j > i ? "rgba(255,255,255,0.03)" : isActive ? `rgba(168,85,247,${alpha})` : `rgba(70,70,90,${alpha * 0.5})`, boxShadow: isActive && j <= i ? "0 0 10px rgba(168,85,247,0.5)" : "none", transform: isActive && j <= i ? "scale(1.07)" : "scale(1)" }} />
+                const val = getWeight(i, j)
+                const isActive = i === activeRow
+                const alpha = 0.15 + val * 0.82
+                return (
+                  <div key={j} className="rounded transition-all duration-300" style={{
+                    width: CELL, height: CELL,
+                    backgroundColor: j > i ? "rgba(255,255,255,0.03)" : isActive ? `rgba(168,85,247,${alpha})` : `rgba(70,70,90,${alpha * 0.5})`,
+                    boxShadow: isActive && j <= i ? "0 0 10px rgba(168,85,247,0.5)" : "none",
+                    transform: isActive && j <= i ? "scale(1.07)" : "scale(1)"
+                  }} />
+                )
               })}
             </div>
           ))}
         </div>
+
         <div className="text-2xl text-zinc-500 font-light shrink-0">×</div>
+
+        {/* value vector */}
         <div className="flex flex-col items-center gap-1">
           <div className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">V</div>
           {Array.from({ length: VEC_DIMS }).map((_, i) => {
-            const val = valueVec[i] ?? 0; const isActive = i === activeVecCell; const alpha = 0.15 + Math.min(Math.abs(val), 1) * 0.82
-            return <div key={i} className="rounded transition-all duration-100" style={{ width: CELL, height: CELL, backgroundColor: `rgba(34,197,94,${alpha})`, boxShadow: isActive ? "0 0 12px rgba(34,197,94,0.8)" : "none", transform: isActive ? "scale(1.12)" : "scale(1)", outline: isActive ? "2px solid rgba(34,197,94,0.6)" : "none" }} />
+            const val = valueVec[i] ?? 0
+            const isActive = i === activeVecCell
+            const alpha = 0.15 + Math.min(Math.abs(val), 1) * 0.82
+            return (
+              <div key={i} className="rounded transition-all duration-200" style={{
+                width: CELL, height: CELL,
+                backgroundColor: `rgba(34,197,94,${alpha})`,
+                boxShadow: isActive ? "0 0 12px rgba(34,197,94,0.8)" : "none",
+                transform: isActive ? "scale(1.12)" : "scale(1)",
+                outline: isActive ? "2px solid rgba(34,197,94,0.6)" : "none"
+              }} />
+            )
           })}
         </div>
+
         <div className="text-2xl text-zinc-500 font-light shrink-0">=</div>
+
+        {/* out vector */}
         <div className="flex flex-col items-center gap-1">
           <div className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">Out</div>
           {Array.from({ length: ROWS }).map((_, i) => {
-            const filled = filledResults.includes(i); const isJustFilled = filledResults[filledResults.length - 1] === i
-            const val = getResult(i); const alpha = 0.2 + Math.min(Math.abs(val), 1) * 0.7
-            return <div key={i} className="rounded transition-all duration-300" style={{ width: CELL, height: CELL, backgroundColor: filled ? `rgba(168,85,247,${alpha})` : "rgba(255,255,255,0.04)", boxShadow: isJustFilled ? "0 0 14px rgba(168,85,247,0.7)" : "none", transform: isJustFilled ? "scale(1.1)" : "scale(1)" }} />
+            const filled = filledResults.includes(i)
+            const isJustFilled = filledResults[filledResults.length - 1] === i
+            const val = getResult(i)
+            const alpha = 0.2 + Math.min(Math.abs(val), 1) * 0.7
+            return (
+              <div key={i} className="rounded transition-all duration-300" style={{
+                width: CELL, height: CELL,
+                backgroundColor: filled ? `rgba(168,85,247,${alpha})` : "rgba(255,255,255,0.04)",
+                boxShadow: isJustFilled ? "0 0 14px rgba(168,85,247,0.7)" : "none",
+                transform: isJustFilled ? "scale(1.1)" : "scale(1)"
+              }} />
+            )
           })}
+        </div>
+      </div>
+
+      {/* explanation card - swaps mid-animation */}
+      <div
+        className="max-w-[480px] w-full transition-all duration-500"
+        style={{ opacity: textVisible && currentExplanation ? 1 : 0, transform: textVisible && currentExplanation ? "translateY(0)" : "translateY(8px)" }}
+      >
+        <div className="text-xs text-zinc-400 leading-relaxed px-5 py-4 rounded-xl border border-[#1e1e24] bg-[#0a0a0d] text-center">
+          {currentExplanation?.text}
         </div>
       </div>
     </div>
@@ -149,6 +275,7 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
   const [outVec, setOutVec] = useState<number[]>([])
   const [lookupDim, setLookupDim] = useState<number | null>(null)
   const [stage, setStage] = useState(0)
+  const [finished, setFinished] = useState(false)
   const [showIntro, setShowIntro] = useState(true)
   const introShownRef = useRef(false)
 
@@ -171,15 +298,43 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
 
   useEffect(() => { if (!inputText.trim()) return; setShowIntro(true); introShownRef.current = false; fetchHeadOut(-1) }, [inputText, layer, head, language])
   useEffect(() => { if (!inputText.trim() || tokens.length === 0) return; fetchHeadOut(selectedToken) }, [selectedToken])
-  useEffect(() => { if (!tokens.length || showIntro) return; setStage(0); [200,450,700,950].forEach((d, i) => setTimeout(() => setStage(i + 1), d)) }, [tokens, selectedToken, showIntro])
+  useEffect(() => {
+    if (!tokens.length || showIntro) return
+  
+    setStage(0)
+    setFinished(false)
+  
+    const times = [200, 450, 700, 950]
+  
+    times.forEach((d, i) => {
+      setTimeout(() => {
+        const nextStage = i + 1
+        setStage(nextStage)
+  
+        if (nextStage === 4) {
+          setTimeout(() => setFinished(true), 200)
+        }
+      }, d)
+    })
+  }, [tokens, selectedToken, showIntro])
 
   return (
     <div className="flex w-full gap-8 h-full">
       <div className="flex-1 flex flex-col items-center">
-        <div className="text-zinc-400 text-base mb-8 tracking-wide">{t("instruction")}</div>
+        <div className="flex items-center gap-4 mb-8">
+          <div className="text-zinc-400 text-base tracking-wide">{t("instruction")}</div>
+          {!showIntro && (
+            <button
+              onClick={() => { setShowIntro(true); introShownRef.current = false }}
+              className="text-[10px] text-zinc-600 border border-zinc-800 rounded px-2 py-0.5 hover:text-zinc-400 hover:border-zinc-600 transition"
+            >
+              ↺ replay
+            </button>
+          )}
+        </div>
 
         {showIntro && tokens.length > 0 && valueVec.length > 0 && (
-          <MatMulIntro tokens={tokens} valueVec={valueVec} onDone={() => { introShownRef.current = true; setShowIntro(false) }} computingLabel={t("computing")} />
+          <MatMulIntro tokens={tokens} valueVec={valueVec} onDone={() => { introShownRef.current = true; setShowIntro(false) }} computingLabel={t("computing")} explanation1={t("animExplanation1")} explanation2={t("animExplanation2")} />
         )}
 
         <div className="w-full flex flex-col items-center transition-opacity duration-500" style={{ opacity: showIntro ? 0 : 1, pointerEvents: showIntro ? "none" : "auto" }}>
@@ -258,7 +413,16 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
           <div className="text-[11px] text-zinc-600 leading-relaxed">{t("attentionHeadsNote")}</div>
         </div>
         <div className="mt-auto flex justify-end">
-          <button onClick={() => setStepIndex(stepIndex + 1)} className="px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] text-zinc-400 hover:bg-[#1a1a20] hover:text-zinc-200 transition">{t("next")}</button>
+          <button
+            onClick={() => setStepIndex(stepIndex + 1)}
+            className={`px-4 py-2 rounded-lg text-xs border border-[#2a2a2e] transition ${
+              finished
+                ? "bg-purple-600 text-white animate-pulse"
+                : "text-zinc-400 hover:bg-[#1a1a20]"
+            }`}
+          >
+            {t("next")}
+          </button>
         </div>
       </div>
     </div>
