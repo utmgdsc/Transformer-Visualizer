@@ -164,6 +164,12 @@
     "continuations": "Possible continuations",
     "predTitle": "Next Token Prediction",
     "predDesc1": "The model uses the final representation of the last token to predict what word comes next.",
-    "predDesc2": "Click any word to see how the sentence would continue with that prediction."
+    "predDesc2": "Click any word to see how the sentence would continue with that prediction.",
+    "temperature": "Temperature",
+    "topK": "Top-K",
+    "hallucinationAnalysis": "Hallucination Analysis",
+    "analyzeButton": "Analyze for Hallucination",
+    "analyzing": "Analyzing...",
+    "risk": "Risk:"
   }
 }

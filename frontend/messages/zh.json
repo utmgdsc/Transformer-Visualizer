@@ -164,6 +164,12 @@
     "continuations": "可能的续写",
     "predTitle": "下一个词元预测",
     "predDesc1": "模型使用最后一个词元的最终表示来预测下一个词。",
-    "predDesc2": "点击任意词查看该预测下句子的续写方式。"
+    "predDesc2": "点击任意词查看该预测下句子的续写方式。",
+    "temperature": "温度",
+    "topK": "Top-K",
+    "hallucinationAnalysis": "幻觉分析",
+    "analyzeButton": "幻觉分析",
+    "analyzing": "正在分析...",
+    "risk": "风险:"
   }
 }

@@ -17,13 +17,15 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
   const [judgeResult, setJudgeResult] = useState<{score: number; conclusion: string; reason: string; passed: boolean} | null>(null)
   const [judgeLoading, setJudgeLoading] = useState(false)
   const [judgeError, setJudgeError] = useState<string | null>(null)
+  const [temperature, setTemperature] = useState(1.0)
+  const [topK, setTopK] = useState(5)
 
   useEffect(() => {
     if (!inputText.trim()) return
     setSelectedToken(null)
     fetchPredictions(inputText)
     setJudgeResult(null)
-  }, [inputText, language])
+  }, [inputText, language, temperature, topK])
 
   async function fetchJudge() {
     setJudgeLoading(true)
@@ -50,7 +52,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
     try {
       const res = await fetch("http://localhost:8000/v1/predict", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, temperature: 1.0, top_k: 5, language })
+        body: JSON.stringify({ text, temperature, top_k: topK, language })
       })
       if (!res.ok) throw new Error(`Predict failed: ${res.status}`)
       const data = await res.json()
@@ -63,7 +65,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
 
   const displaySentence = inputText.trim()
   const activeToken = selectedToken ?? predictions[0]?.token ?? ""
-
+  
   return (
     <div className="flex w-full gap-10">
       <div className="flex-1 flex flex-col items-center">
@@ -73,7 +75,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
           {displaySentence}{" "}
           {activeToken && <span className="text-purple-400 font-medium">{activeToken.trim()}</span>}
         </div>
-
+    
         {error && <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">{error}</div>}
         {loading && <div className="text-zinc-500 text-sm animate-pulse mb-6">{t("loading")}</div>}
 
@@ -110,14 +112,14 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
                       
             {/* Hallucination Analysis */}
             <div className="w-full max-w-md mt-6 flex flex-col gap-3">
-              <div className="text-sm text-zinc-500 mb-2">Hallucination Analysis</div>
+              <div className="text-sm text-zinc-500 mb-2">{t("hallucinationAnalysis")}</div>
 
               <button
                 onClick={fetchJudge}
                 disabled={judgeLoading || !activeToken}
                 className="px-4 py-2 rounded-lg border border-[#2a2a2e] text-sm text-zinc-300 hover:border-purple-500 hover:text-purple-300 transition disabled:opacity-50"
               >
-                {judgeLoading ? "Analyzing..." : "Analyze for Hallucination"}
+                {judgeLoading ? t("analyzing") : t("analyzeButton")}
               </button>
 
               {judgeError && (
@@ -129,7 +131,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
               {judgeResult && (
                 <div className="flex flex-col gap-2 p-4 rounded-lg border border-[#2a2a2e] bg-[#111114]">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-zinc-400">Risk:</span>
+                    <span className="text-sm text-zinc-400">{t("risk")}</span>
                     <span className={`text-sm font-medium ${
                       judgeResult.conclusion === "low" ? "text-green-400" :
                       judgeResult.conclusion === "medium" ? "text-yellow-400" :
@@ -153,8 +155,30 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
           <div className="text-lg font-semibold mb-4">{t("predTitle")}</div>
           <p className="text-sm text-zinc-400 mb-4 leading-relaxed">{t("predDesc1")}</p>
           <p className="text-sm text-zinc-400 leading-relaxed">{t("predDesc2")}</p>
+          {/* top-k and temperature */}
+          <div className="flex flex-col gap-4 border-t border-[#2a2a2e] pt-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between">
+                <label className="text-sm text-zinc-400">{t("temperature")}</label>
+                <span className="text-sm text-zinc-300">{temperature}</span>
+              </div>
+              <input type="range" min={0.1} max={2.0} step={0.1} value={temperature}
+                onChange={(e) => setTemperature(Number(e.target.value))}
+                className="w-full accent-purple-500" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between">
+                <label className="text-sm text-zinc-400">{t("topK")}</label>
+                <span className="text-sm text-zinc-300">{topK}</span>
+              </div>
+              <input type="range" min={1} max={20} step={1} value={topK}
+                onChange={(e) => setTopK(Number(e.target.value))}
+                className="w-full accent-purple-500" />
+            </div>
+          </div>
         </div>
       </div>
+      
     </div>
   )
 }
