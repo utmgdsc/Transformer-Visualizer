@@ -22,6 +22,9 @@ async def calculate_sgi(request: SGIRequest):
     Returns similarity scores showing how grounded each token is
     in the context vs just repeating the question.
     """
+    if not model_manager.is_loaded(request.language):
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
     try:
         # get the model for the specified language
         model = model_manager.get_model(language=request.language)
@@ -47,8 +50,9 @@ async def calculate_sgi(request: SGIRequest):
                 generated_tokens=request.generated_tokens
             )
         else:
-            raise ValueError(
-                "Must provide either 'full_text' for auto-split OR both 'context' and 'question'"
+            raise HTTPException(
+                status_code=422,
+                detail="Must provide either 'full_text' for auto-split OR both 'context' and 'question'"
             )
         
         # format results
@@ -68,6 +72,8 @@ async def calculate_sgi(request: SGIRequest):
             token_scores=token_scores
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,

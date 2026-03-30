@@ -36,6 +36,9 @@ class EntropyCalculator:
             Tuple of (generated_text, token_data) where token_data is a list of:
             (token, entropy, top_k_probs)
         """
+        if temperature <= 0:
+            raise ValueError(f"temperature must be > 0, got {temperature}")
+        
         # tokenize input
         tokens = self.model.to_tokens(input_text)
         
@@ -115,11 +118,14 @@ class EntropyCalculator:
         
         Args:
             logits: Raw model logits
-            temperature: Temperature scaling
+            temperature: Temperature scaling (must be > 0)
             
         Returns:
             Shannon entropy value
         """
+        if temperature <= 0:
+            raise ValueError(f"temperature must be > 0, got {temperature}")
+        
         # Apply temperature scaling
         scaled_logits = logits / temperature
         

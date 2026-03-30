@@ -18,6 +18,9 @@ async def calculate_entropy(request: EntropyRequest):
     Measures model uncertainty - high entropy indicates the model
     is guessing and more likely to hallucinate.
     """
+    if not model_manager.is_loaded(request.language):
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
     try:
         # get the model for the specified language
         model = model_manager.get_model(language=request.language)

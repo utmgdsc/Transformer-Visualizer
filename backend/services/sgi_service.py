@@ -56,9 +56,9 @@ def split_text_for_sgi(full_text: str, split_at_last_sentence: bool = False) -> 
             question = full_text[last_split_pos:].strip()
             return context, question
     
-    # Fallback: split at last 20% of text (or minimum 10 chars)
-    split_point = max(len(full_text) - len(full_text) // 5, len(full_text) - 10)
-    split_point = max(split_point, 0)
+    # Fallback: split at last 20% of text (or minimum 10 chars for the question)
+    split_point = len(full_text) - max(len(full_text) // 5, 10)
+    split_point = max(min(split_point, len(full_text) - 1), 0)
     
     # Try to split at a space to avoid breaking words
     while split_point > 0 and full_text[split_point] not in [' ', '\n', '\t']:
