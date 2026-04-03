@@ -30,7 +30,9 @@ response:
 POST /v1/predict
 ```
 
-request body:
+**Supports optional hallucination metrics!** Set `include_entropy` or `include_sgi` to get metrics with your predictions.
+
+**Basic request** (no metrics):
 
 ```json
 {
@@ -40,7 +42,7 @@ request body:
 }
 ```
 
-response:
+**Response:**
 
 ```json
 {
@@ -65,6 +67,138 @@ response:
   ]
 }
 ```
+
+**With entropy metrics** (`include_entropy: true`):
+
+```json
+{
+  "text": "The capital of France is",
+  "temperature": 1.0,
+  "top_k": 5,
+  "include_entropy": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "input_text": "The capital of France is",
+  "generated_text": "The capital of France is Paris",
+  "next_token_probabilities": [
+    {
+      "token": " Paris",
+      "probability": 0.85,
+      "token_id": 6342,
+      "entropy": 2.15,
+      "conclusion": "low"
+    },
+    {
+      "token": " Lyon",
+      "probability": 0.08,
+      "token_id": 12345,
+      "entropy": 2.15,
+      "conclusion": "low"
+    }
+  ]
+}
+```
+
+**With SGI metrics** (`include_sgi: true`):
+
+```json
+{
+  "text": "Paris is the capital of France. What about",
+  "temperature": 1.0,
+  "top_k": 5,
+  "include_sgi": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "input_text": "Paris is the capital of France. What about",
+  "generated_text": "Paris is the capital of France. What about London",
+  "sgi_context": "Paris is the capital of France.",
+  "sgi_question": "What about",
+  "next_token_probabilities": [
+    {
+      "token": " London",
+      "probability": 0.42,
+      "token_id": 3576,
+      "sgi_score": 1.28,
+      "sgi_context_angular_distance": 0.85,
+      "sgi_question_angular_distance": 1.09
+    },
+    {
+      "token": " Rome",
+      "probability": 0.28,
+      "token_id": 10598,
+      "sgi_score": 1.15,
+      "sgi_context_angular_distance": 0.92,
+      "sgi_question_angular_distance": 1.06
+    }
+  ]
+}
+```
+
+**With BOTH metrics** (`include_entropy: true` and `include_sgi: true`):
+
+```json
+{
+  "text": "The Earth orbits the",
+  "temperature": 1.0,
+  "top_k": 5,
+  "include_entropy": true,
+  "include_sgi": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "input_text": "The Earth orbits the",
+  "generated_text": "The Earth orbits the Sun",
+  "sgi_context": "The Earth orbits",
+  "sgi_question": "the",
+  "next_token_probabilities": [
+    {
+      "token": " Sun",
+      "probability": 0.89,
+      "token_id": 3825,
+      "entropy": 1.87,
+      "conclusion": "low",
+      "sgi_score": 1.52,
+      "sgi_context_angular_distance": 0.76,
+      "sgi_question_angular_distance": 1.15
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+- `text` (required): Input text to predict from
+- `temperature` (optional, default: 1.0): Sampling temperature
+- `top_k` (optional, default: 5): Number of top predictions to return
+- `language` (optional, default: "en"): Language model ("en" or "fr")
+- `include_entropy` (optional, default: false): Include entropy and confidence level
+- `include_sgi` (optional, default: false): Include SGI context/question similarity
+
+**Interpreting Metrics:**
+
+Entropy:
+- **Low conclusion** ✅ Model is confident (entropy < 3.0)
+- **Medium conclusion** ⚠️ Model is uncertain (entropy 3.0-7.0)
+- **High conclusion** 🚨 Model is guessing (entropy > 7.0)
+
+SGI (use `sgi_score` for histogram):
+- **SGI > 1.0** ✅ Grounded (closer to context)
+- **SGI ≈ 1.0** ⚠️ Neutral (equidistant)  
+- **SGI < 1.0** 🚨 Semantic laziness (closer to question)
 
 ### generate text
 
@@ -452,6 +586,187 @@ response:
   "passed": true
 }
 ```
+
+### SGI (Semantic Grounding Index)
+
+```text
+POST /v1/sgi
+```
+
+Measures how "grounded" the model's output is by comparing token embeddings to context vs question.
+
+**Mode 1: Auto-Split (Recommended)**
+
+request body:
+
+```json
+{
+  "full_text": "The quick brown fox jumps over",
+  "generated_tokens": ["the", "lazy", "dog"],
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "context": "The quick brown fox",
+  "question": "jumps over",
+  "token_scores": [
+    {
+      "token": "the",
+      "context_angular_distance": 0.87,
+      "question_angular_distance": 1.23,
+      "sgi_score": 1.41
+    },
+    {
+      "token": "lazy",
+      "context_angular_distance": 1.15,
+      "question_angular_distance": 1.45,
+      "sgi_score": 1.26
+    },
+    {
+      "token": "dog",
+      "context_angular_distance": 0.95,
+      "question_angular_distance": 1.38,
+      "sgi_score": 1.45
+    }
+  ]
+}
+```
+
+**Mode 2: Manual Split**
+
+request body:
+
+```json
+{
+  "context": "Paris is the capital of France",
+  "question": "What is the capital of France?",
+  "generated_tokens": ["Paris"],
+  "language": "en"
+}
+```
+
+**Parameters:**
+
+- `full_text` (optional): Full text to auto-split into context/question
+- `context` (optional): Source text/grounding information (required if `full_text` not provided)
+- `question` (optional): User's input question (required if `full_text` not provided)
+- `generated_tokens` (required): List of tokens generated by the model
+- `split_at_sentence` (optional, default: false): If true, split at last sentence boundary; otherwise split at 80/20
+- `language` (optional, default: "en"): language model to use ("en" or "fr")
+
+**Interpreting Results:**
+
+**Using the Final SGI Score** (recommended for histograms):
+- **SGI > 1.0** ✅ Model is grounded (response is closer to context than question)
+- **SGI ≈ 1.0** ⚠️ Neutral (response equidistant from context and question)
+- **SGI < 1.0** 🚨 Semantic laziness (response is closer to question than context)
+
+**Using Individual Angular Distances:**
+- **Small context_angular_distance, Large question_angular_distance** ✅ Model is grounded in context
+- **Large context_angular_distance, Small question_angular_distance** ⚠️ Model is just repeating the question
+- **Large both distances** 🚨 Response is unrelated to both context and question
+
+**Notes:**
+
+- SGI uses angular distance (geodesic distance on unit hypersphere)
+- **SGI Score** = `θ(response, question) / (θ(response, context) + ε)` where θ is angular distance
+- Angular distances are in radians (0 to π)
+- Use `sgi_score` for histogram visualization (threshold at 1.0)
+- Auto-split uses 80/20 split by default (last 20% = question)
+- Use `split_at_sentence: true` only for multi-sentence inputs
+- The API returns the detected context/question for verification
+
+### Predictive Entropy
+
+```text
+POST /v1/entropy
+```
+
+Measures model uncertainty during generation - high entropy indicates the model is guessing.
+
+request body:
+
+```json
+{
+  "text": "The capital of France is",
+  "max_tokens": 10,
+  "temperature": 1.0,
+  "language": "en"
+}
+```
+
+response:
+
+```json
+{
+  "input_text": "The capital of France is",
+  "generated_text": " Paris. It is located",
+  "token_scores": [
+    {
+      "token": " Paris",
+      "entropy": 2.15,
+      "conclusion": "low",
+      "top_probs": [0.85, 0.08, 0.03, 0.02, 0.01]
+    },
+    {
+      "token": ".",
+      "entropy": 1.89,
+      "conclusion": "low",
+      "top_probs": [0.92, 0.04, 0.02, 0.01, 0.01]
+    },
+    {
+      "token": " It",
+      "entropy": 4.32,
+      "conclusion": "medium",
+      "top_probs": [0.35, 0.28, 0.15, 0.12, 0.08]
+    },
+    {
+      "token": " is",
+      "entropy": 3.76,
+      "conclusion": "medium",
+      "top_probs": [0.45, 0.22, 0.18, 0.09, 0.04]
+    },
+    {
+      "token": " located",
+      "entropy": 6.87,
+      "conclusion": "high",
+      "top_probs": [0.18, 0.16, 0.15, 0.14, 0.12]
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+- `text` (required): Input text to generate from
+- `max_tokens` (optional, default: 50): Number of tokens to generate
+- `temperature` (optional, default: 1.0): Sampling temperature (higher = more random)
+- `language` (optional, default: "en"): Language model to use ("en" or "fr")
+
+**Interpreting Results:**
+
+- **Low entropy (< 3.0)** ✅ Model is confident - token choice is clear
+- **Medium entropy (3.0-7.0)** ⚠️ Model is somewhat uncertain - multiple plausible options
+- **High entropy (> 7.0)** 🚨 Model is guessing - high hallucination risk
+
+**Conclusion Levels:**
+
+- `"low"`: Model is confident (entropy < 30% of max)
+- `"medium"`: Model is uncertain (entropy 30-70% of max)
+- `"high"`: Model is very uncertain (entropy > 70% of max)
+
+**Notes:**
+
+- Uses Shannon entropy formula: H = -Σ(p × log(p))
+- **Numerical Stability**: Uses `F.log_softmax` instead of manual log calculation
+- Higher entropy = more uniform probability distribution = more uncertainty
+- Perfect for heatmap visualization (color tokens by entropy)
+- `top_probs` shows the top 5 probability values for context
+- **Centralized Logic**: All entropy calculations use `EntropyCalculator` service
 
 ## request parameters
 

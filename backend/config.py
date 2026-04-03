@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     # application configuration
@@ -7,6 +8,9 @@ class Settings(BaseSettings):
     # model configuration
     default_language: str = "en"
     device: str = "cpu"
+    
+    # API keys
+    groq_api_key: Optional[str] = None
     
     class Config:
         env_file = ".env"

@@ -1,14 +1,18 @@
 from fastapi import APIRouter, HTTPException
 import torch
-from typing import List
+from typing import List, Optional
 
 from models.model_loader import model_manager
+
 from schemas import (
     InferenceRequest, InferenceResponse, TokenProbability,
     TokenizationRequest, TokenizationResponse, TokenEmbedding
 )
+from services.entropy_service import EntropyCalculator
+from services.sgi_service import SGICalculator, split_text_for_sgi
 
 router = APIRouter(prefix="/v1", tags=["inference"])
+
 
 @router.post("/predict", response_model=InferenceResponse)
 async def predict_next_token(request: InferenceRequest):
@@ -35,25 +39,69 @@ async def predict_next_token(request: InferenceRequest):
         # get top k most probable tokens
         top_k_probs, top_k_indices = torch.topk(probs, request.top_k)
         
+        # collect all top-k token strings upfront
+        top_k_tokens = [(prob, idx, model.to_string(idx)) for prob, idx in zip(top_k_probs.tolist(), top_k_indices.tolist())]
+        
+        # compute entropy once outside the loop (same for all top-k tokens)
+        entropy: Optional[float] = None
+        conclusion: Optional[str] = None
+        if request.include_entropy:
+            entropy_calculator = EntropyCalculator(model)
+            entropy = EntropyCalculator.calculate_entropy_from_logits(final_logits, request.temperature)
+            conclusion = entropy_calculator.classify_entropy_level(entropy)
+        
+        # prepare SGI if requested - compute for all tokens at once
+        sgi_context: Optional[str] = None
+        sgi_question: Optional[str] = None
+        sgi_results_map: dict = {}
+        if request.include_sgi:
+            sgi_calculator = SGICalculator(model)
+            sgi_context, sgi_question = split_text_for_sgi(request.text)
+            if sgi_context and sgi_question:
+                token_strings = [token_str for _, _, token_str in top_k_tokens]
+                sgi_results = sgi_calculator.calculate_sgi(sgi_context, sgi_question, token_strings)
+                sgi_results_map = {token_str: (theta_rc, theta_rq, sgi_score) for token_str, theta_rc, theta_rq, sgi_score in sgi_results}
+        
         # build list of token probabilities for response
         next_token_probs: List[TokenProbability] = []
-        for prob, idx in zip(top_k_probs.tolist(), top_k_indices.tolist()):
-            token_str = model.to_string(idx)
-            next_token_probs.append(TokenProbability(
-                token=token_str,
-                probability=prob,
-                token_id=idx
-            ))
+        for prob, idx, token_str in top_k_tokens:
+            # base token data
+            token_data = {
+                "token": token_str,
+                "probability": prob,
+                "token_id": idx
+            }
+            
+            # add entropy if requested (same value for all tokens - derived from final_logits)
+            if request.include_entropy and entropy is not None:
+                token_data["entropy"] = entropy
+                token_data["conclusion"] = conclusion
+            
+            # add SGI if requested
+            if request.include_sgi and token_str in sgi_results_map:
+                theta_rc, theta_rq, sgi_score = sgi_results_map[token_str]
+                token_data["sgi_score"] = sgi_score
+                token_data["sgi_context_angular_distance"] = theta_rc
+                token_data["sgi_question_angular_distance"] = theta_rq
+            
+            next_token_probs.append(TokenProbability(**token_data))
         
         # generate output text with most likely next token
         predicted_token_id = top_k_indices[0].item()
         generated_text = request.text + model.to_string(predicted_token_id)
         
-        return InferenceResponse(
-            input_text=request.text,
-            generated_text=generated_text,
-            next_token_probabilities=next_token_probs
-        )
+        response_data = {
+            "input_text": request.text,
+            "generated_text": generated_text,
+            "next_token_probabilities": next_token_probs
+        }
+        
+        # add SGI metadata if requested
+        if request.include_sgi:
+            response_data["sgi_context"] = sgi_context
+            response_data["sgi_question"] = sgi_question
+        
+        return InferenceResponse(**response_data)
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")

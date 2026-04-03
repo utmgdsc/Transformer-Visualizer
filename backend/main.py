@@ -8,6 +8,8 @@ from routes.inference import router as inference_router
 from routes.attention import router as attention_router
 from routes.ablation import router as ablation_router
 from routes.llmjudge import router as llmjudge_router
+from routes.sgi import router as sgi_router
+from routes.entropy import router as entropy_router
 from routes.qkv import router as qkv_router
 from routes.mlp import router as mlp_router
 from routes.modelinfo import router as model_info_router
@@ -38,6 +40,8 @@ app.include_router(inference_router)
 app.include_router(attention_router)
 app.include_router(ablation_router)
 app.include_router(llmjudge_router)
+app.include_router(sgi_router)
+app.include_router(entropy_router)
 app.include_router(qkv_router)
 app.include_router(mlp_router)
 app.include_router(model_info_router)
