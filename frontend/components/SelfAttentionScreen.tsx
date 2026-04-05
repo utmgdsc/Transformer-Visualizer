@@ -48,7 +48,11 @@ export default function SelfAttentionScreen({
       const allTokens: string[] = data.tokens
       const keepIndices = allTokens
         .map((tok, i) => ({ tok, i }))
-        .filter(({ tok }) => !tok.match(/^<\|.*\|>$|^\[.*\]$/))
+        .filter(({ tok }) => {
+          const isSpecial = tok.match(/^<\|.*\|>$|^\[.*\]$/)
+          const isWhitespace = tok.replace(/Ġ/g, "").trim() === ""
+          return !isSpecial && !isWhitespace
+        })
         .map(({ i }) => i)
       setTokens(keepIndices.map(i => allTokens[i]))
       const fullMatrix: number[][] = data.patterns[0].attention_matrix

@@ -150,9 +150,12 @@ export default function MLPScreen({ stepIndex, setStepIndex, inputText, layer = 
           body: JSON.stringify({ text: inputText, language }),
         })
         const data = await res.json()
-        const filtered = data.token_embeddings.filter((te: any) =>
-          !te.token.match(/^<\|.*\|>$|^\[.*\]$/)
-        )
+        const filtered = data.token_embeddings.filter((te: any) => {
+          const tok = te.token
+        
+          const isSpecial = tok.match(/^<\|.*\|>$|^\[.*\]$/)
+          const isWhitespace = tok.replace(/Ġ/g, "").trim() === ""
+          return !isSpecial && !isWhitespace})
         const toks = filtered.map((te: any) => te.token)
         setTokens(toks.length > 0 ? toks : inputText.split(/\s+/))
         setSelectedToken(0)

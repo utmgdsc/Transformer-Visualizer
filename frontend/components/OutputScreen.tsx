@@ -35,7 +35,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
       const res = await fetch("http://localhost:8000/v1/judge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input_text: inputText, generated_text: activeToken.trim() })
+        body: JSON.stringify({ input_text: inputText.trim(), generated_text: activeToken.trim() })
       })
       if (!res.ok) throw new Error(`Judge failed: ${res.status}`)
       const data = await res.json()
@@ -48,11 +48,12 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
   }
 
   async function fetchPredictions(text: string) {
+    const trimmed = text.trim()
     setLoading(true); setError(null)
     try {
       const res = await fetch("http://localhost:8000/v1/predict", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, temperature, top_k: topK, language })
+        body: JSON.stringify({ text: trimmed, temperature, top_k: topK, language })
       })
       if (!res.ok) throw new Error(`Predict failed: ${res.status}`)
       const data = await res.json()
@@ -64,7 +65,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
   }
 
   const displaySentence = inputText.trim()
-  const activeToken = selectedToken ?? predictions[0]?.token ?? ""
+  const activeToken = (selectedToken ?? predictions[0]?.token ?? "").replace(/Ġ+/g, " ")
   
   return (
     <div className="flex w-full gap-10">
@@ -73,7 +74,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
 
         <div className="text-lg text-zinc-300 mb-10 text-center">
           {displaySentence}{" "}
-          {activeToken && <span className="text-purple-400 font-medium">{activeToken.trim()}</span>}
+          {activeToken && <span className="text-purple-400 font-medium">{activeToken}</span>}
         </div>
     
         {error && <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">{error}</div>}
@@ -86,7 +87,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
                 const isActive = (selectedToken ?? predictions[0].token) === item.token
                 return (
                   <button key={i} onClick={() => setSelectedToken(item.token)} className="flex items-center gap-3 w-full text-left group">
-                    <div className={`w-28 text-sm transition ${isActive ? "text-purple-400 font-medium" : "text-zinc-400 group-hover:text-zinc-200"}`}>{item.token.trim()}</div>
+                    <div className={`w-28 text-sm transition ${isActive ? "text-purple-400 font-medium" : "text-zinc-400 group-hover:text-zinc-200"}`}>{item.token.replace(/Ġ+/g, " ")}</div>
                     <div className="flex-1 h-2 bg-[#1c1c22] rounded-full overflow-hidden">
                       <div className={`h-full rounded-full transition-all duration-500 ${isActive ? "bg-purple-500" : "bg-zinc-600 group-hover:bg-zinc-500"}`} style={{ width: `${item.probability * 100}%` }}/>
                     </div>
@@ -103,7 +104,7 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
                 return (
                   <button key={i} onClick={() => setSelectedToken(item.token)}
                     className={`text-sm px-4 py-2 rounded-lg border text-left transition ${isActive ? "border-purple-500 bg-purple-500/10 text-purple-300" : "border-[#2a2a2e] text-zinc-300 hover:border-zinc-500"}`}>
-                    {displaySentence}{" "}<span className="font-medium">{item.token.trim()}</span>
+                    {displaySentence}{" "}<span className="font-medium">{item.token.replace(/Ġ+/g, " ")}</span>
                     <span className="ml-2 text-xs text-zinc-400">({(item.probability * 100).toFixed(1)}%)</span>
                   </button>
                 )
@@ -177,6 +178,43 @@ export default function ProbabilitiesScreen({ inputText }: { inputText: string }
             </div>
           </div>
         </div>
+        <div className="mt-6 pt-4 border-t border-[#2a2a2e] flex flex-col gap-3">
+
+  <div className="text-sm text-zinc-500">
+    Check us out!
+  </div>
+
+  <a
+    href="https://github.com/utmgdsc/Transformer-Visualizer"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#2a2a2e] bg-[#0f0f10] hover:border-purple-500 hover:bg-purple-500/10 transition group"
+  >
+    {/* GitHub Icon */}
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+      className="text-zinc-400 group-hover:text-purple-400 transition"
+    >
+      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.57.1.78-.25.78-.55v-2.17c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.72-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.3 1.2-3.1-.12-.3-.52-1.5.12-3.12 0 0 .98-.32 3.2 1.2a11.1 11.1 0 0 1 5.82 0c2.22-1.52 3.2-1.2 3.2-1.2.64 1.62.24 2.82.12 3.12.75.8 1.2 1.84 1.2 3.1 0 4.44-2.7 5.4-5.27 5.68.42.36.78 1.08.78 2.18v3.23c0 .3.2.66.8.55C20.71 21.37 24 17.07 24 12 24 5.65 18.85.5 12 .5z"/>
+    </svg>
+
+    <div className="flex flex-col">
+      <div className="text-sm text-zinc-300 group-hover:text-white">
+        Transformer Visualizer
+      </div>
+      <div className="text-xs text-zinc-500">
+        View source on GitHub
+      </div>
+    </div>
+
+  </a>
+</div>
+
+
       </div>
       
     </div>

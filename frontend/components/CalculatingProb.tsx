@@ -173,8 +173,14 @@ export default function ProbabilityScreen({ stepIndex, setStepIndex, inputText, 
           body: JSON.stringify({ text: inputText, language }),
         })
         const data = await res.json()
-        const filtered = data.token_embeddings.filter((te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/))
-        const toks = filtered.map((te: any) => te.token)
+        const toks = data.token_embeddings
+        .map((te: any) => te.token)
+        .filter((tok: string) => {
+          const isSpecial = tok.match(/^<\|.*\|>$|^\[.*\]$/)
+          const isWhitespace = tok.replace(/Ġ/g, "").trim() === ""
+          return !isSpecial && !isWhitespace
+        })
+        .map((tok: string) => tok.replace(/Ġ+/g, " "))
         setTokens(toks.length > 0 ? toks : inputText.split(/\s+/))
         setSelectedToken(0)
       } catch {
