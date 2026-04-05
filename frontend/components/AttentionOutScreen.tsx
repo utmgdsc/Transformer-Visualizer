@@ -17,10 +17,10 @@ function MatMulIntro({ tokens, valueVec, onDone, computingLabel, explanation1, e
   explanation1: string
   explanation2: string
 }) {
-  const ROWS = Math.min(tokens.length, 6)
-  const COLS = Math.min(tokens.length, 6)
+  const ROWS = tokens.length
+  const COLS = tokens.length
   const VEC_DIMS = tokens.length
-  const CELL = 38, GAP = 4
+  const CELL = Math.max(18, Math.min(38, Math.floor(260 / tokens.length))), GAP = 3
 
   function getWeight(i: number, j: number) {
     if (j > i) return 0
@@ -146,6 +146,7 @@ function MatMulIntro({ tokens, valueVec, onDone, computingLabel, explanation1, e
       <div className="flex items-center gap-6">
         {/* attention weight matrix */}
         <div className="flex flex-col" style={{ gap: GAP }}>
+          <div className="text-[9px] text-zinc-600 italic mb-1" style={{ paddingLeft: 32 }}>token labels truncated to 3 chars</div>
           <div className="flex" style={{ gap: GAP, paddingLeft: 32 }}>
             {Array.from({ length: COLS }).map((_, j) => (
               <div key={j} style={{ width: CELL, fontSize: 9 }} className="text-center text-zinc-600 truncate">{tokens[j]?.slice(0, 4)}</div>
@@ -230,15 +231,15 @@ function MatMulIntro({ tokens, valueVec, onDone, computingLabel, explanation1, e
 function AttentionMatrix({ tokens, selectedToken, visible }: { tokens: string[], selectedToken: number, visible: boolean }) {
   const size = tokens.length
   function getValue(i: number, j: number) { if (j > i) return null; return Math.abs(Math.sin((i + 1) * (j + 2))) }
-  const CELL = 32, GAP = 5
+  const CELL = Math.max(18, Math.min(32, Math.floor(260 / size))), GAP = 4
   return (
     <div className="flex flex-col transition-all duration-500" style={{ gap: GAP, opacity: visible ? 1 : 0, transform: visible ? "translateY(0px)" : "translateY(14px)" }}>
       <div className="flex" style={{ gap: GAP, paddingLeft: 36 }}>
-        {tokens.map((t, i) => <div key={i} className="text-center text-zinc-500 truncate" style={{ width: CELL, fontSize: 10 }}>{t.slice(0, 4)}</div>)}
+        {tokens.map((t, i) => <div key={i} className="text-center text-zinc-500 truncate" style={{ width: CELL, fontSize: 9 }}>{t.slice(0, 4)}</div>)}
       </div>
       {Array.from({ length: size }).map((_, i) => (
         <div key={i} className="flex items-center" style={{ gap: GAP }}>
-          <div className="text-right text-zinc-500 truncate shrink-0" style={{ width: 28, fontSize: 10 }}>{tokens[i]?.slice(0, 4)}</div>
+          <div className="text-right text-zinc-500 truncate shrink-0" style={{ width: 28, fontSize: 9 }}>{tokens[i]?.slice(0, 4)}</div>
           {Array.from({ length: size }).map((_, j) => {
             const val = getValue(i, j); const isRow = i === selectedToken
             if (val === null) return <div key={j} className="rounded" style={{ width: CELL, height: CELL, backgroundColor: "rgba(255,255,255,0.03)" }} />
@@ -282,10 +283,14 @@ export default function AttentionOutScreen({ stepIndex, setStepIndex, inputText,
   const fetchHeadOut = (selToken: number) => {
     fetch("http://localhost:8000/v1/attention/head-out", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: inputText, layer: layer - 1, head, include_bias: true, include_attention_matrix: false, language }),
+      body: JSON.stringify({ text: inputText.trim(), layer: layer - 1, head, include_bias: true, include_attention_matrix: false, language }),
     }).then(r => r.json()).then(data => {
       const allTokens: string[] = data.tokens ?? []
-      const keepIndices = allTokens.map((tok, i) => ({ tok, i })).filter(({ tok }) => !tok.match(/^<\|.*\|>$|^\[.*\]$/)).map(({ i }) => i)
+      const keepIndices = allTokens.map((tok, i) => ({ tok, i })).filter(({ tok }) => {
+        const isSpecial = tok.match(/^<\|.*\|>$|^\[.*\]$/)
+        const isWhitespace = tok.replace(/Ġ/g, "").trim() === ""
+        return !isSpecial && !isWhitespace
+      }).map(({ i }) => i)
       if (selToken === -1) { setTokens(keepIndices.map(i => allTokens[i])); setSelectedToken(0) }
       const pattern = data.patterns?.[0]
       if (pattern) {
