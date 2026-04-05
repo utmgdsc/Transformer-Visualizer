@@ -33,7 +33,14 @@ export default function QKVScreen({ stepIndex, setStepIndex, inputText, layer, s
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: inputText, language })
     }).then(r => r.json()).then(data => {
-      const filtered = data.token_embeddings.filter((te: any) => !te.token.match(/^<\|.*\|>$|^\[.*\]$/))
+      const filtered = data.token_embeddings.filter((te: any) => {
+        const tok = te.token
+      
+        const isSpecial = tok.match(/^<\|.*\|>$|^\[.*\]$/)
+        const isWhitespace = tok.replace(/Ġ/g, "").trim() === ""
+      
+        return !isSpecial && !isWhitespace
+      })
       setTokens(filtered.map((t: any) => t.token))
       setEmbedding(filtered[0]?.embedding || [])
       setSelectedToken(0)
