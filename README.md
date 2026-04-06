@@ -2,6 +2,7 @@
 
 An educational platform inspired by Transformer Explainer, built by Amaan Farooqi, Anas Almasri, Fares Alkorani, Joshua Ramnauth, and Rithika Yerra as part of CSC392H5 at the University of Toronto Mississauga, under the supervision of Professor Mohammad Mahmoud.
 
+It can be viewed here : https://transformer-visualizer-eight.vercel.app/
 
 ## About The Project
 
