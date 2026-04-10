@@ -1,9 +1,8 @@
 # Language Support in Transformer Lens
 
 ## Quick Summary
-- TransformerLens just uses model weights as-is;it doesn't modify how the model handles multilingualism, it just lets you inspect it!
-- MWork: LLMs process non-English input in three stages: convert to English-centric representations --> reason in English --> convert back to original language
-    - It's not actual translation
+- TransformerLens just uses model weights as-is;it doesn't modify how the model handles multilingualism, it just lets you inspect it.
+- MWork: LLMs process non-English input in three stages: convert to English-centric representations --> reason in English --> convert back to original language. Note that the model doesn't actually translate it.
     - Self-attention handles reasoning (English-centric), FFNs handle factual knowledge retrieval (multilingual), these are separable
     - Just 0.13% of neurons being deactivated can destroy multilingual capabilities entirely. This shows how concentrated the language-switching work is
 - Neuron behaviour is input dependent, not fixed. A "language-specific" neuron per MWork might behave differently on a different input.
@@ -19,7 +18,7 @@ So basically, Transformer Lens doesn't deal with how the models interact with mu
 
 ## MWork - Multilingual Workflow [2]
 High-level: translate to English-centric (not exactly English) --> reason/task-solving (English-centric + some non-English tokens) --> translate back to the original language
-LLMs used: Mistral, Vicuna, BLOOMZ, Chinese Llama
+LLMs used for their paper: Mistral, Vicuna, BLOOMZ, Chinese Llama
 
 The authors hypothesize that the process, known as MWork, is how multilingual models work. 
 They test the hypothesis using PLND (Parallel Language-specific Neuron Detection), which finds language-specific neurons that are consistently activated when processing documents in a specific language. 
@@ -62,9 +61,6 @@ Also, they found that the model is doing roughly the same amount of work per lay
 
 Although all-shared only makes up of ~20% of neurons in BLOOM (~30% in BLOOMZ, BLOOM-560m, the model we're using may have a lower percentage since it doesn't have IFT), regardless the language inputs, all-shared neurons are the top contributing neurons to the outputs at every layer. Specifically, "they contribute 91.6% to the generation of the correct output in the German test set". So, language-specific neurons are more about surface-level switching than actual correctness.
 - They then propose at the end that increasing all-shared neurons (via replacing or IFT, instruction fine-tuning) can "significantly enhance the accuracy of an LLM in multilingual tasks."
-
-
-### another paper to explore (if time permits): https://arxiv.org/pdf/2502.15603
 
 Sources: \
 [1] https://transformerlensorg.github.io/TransformerLens/ \
