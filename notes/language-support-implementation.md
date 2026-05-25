@@ -1,5 +1,6 @@
 # Multilingual support for Transformer Visualizer
 
+This summarises how we would implement multilingual support without TransformerLens.
 To generalize, for different langauges, we have to:
 1. In the backend (for Transformer Explainer, src/utils/model, change `modelname`), export the model to ONNX if we want to run on the browser. If not, and if we want to do everything in the backend, use AutoModelForCausalLM . 
 2. we would have to use a separate tokenizer too using AutoTokenizer (usually included in the Transformers library)
